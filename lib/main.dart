@@ -5,7 +5,7 @@ void main() {
     const MaterialApp(
       debugShowCheckedModeBanner: false,
       home: Scaffold(
-        body: Center(child: Text('문구를 바꿈')),
+        body: Center(child: Text('Flutter 시작!')),
       ),
     ),
   );
