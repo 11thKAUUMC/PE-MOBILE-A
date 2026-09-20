@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../widgets/common_app_bar.dart';
 import '../widgets/profile_header.dart';
-import '../widgets/stat_item.dart';
+import '../widgets/profile_stats.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -9,16 +10,13 @@ class ProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('내 프로필')),
+      appBar: const CommonAppBar(title: '내 프로필'),
       body: const SafeArea(
         child: SingleChildScrollView(
           padding: EdgeInsets.all(24),
           child: Column(
-            children: [
-              ProfileHeader(),
-              SizedBox(height: 32),
-              StatItem(label: '본 영화', value: '24'),
-            ],
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [ProfileHeader(), SizedBox(height: 32), ProfileStats()],
           ),
         ),
       ),
