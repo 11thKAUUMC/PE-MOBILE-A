@@ -4,7 +4,7 @@ void main() {
   runApp(
     const MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: Scaffold(body: Center(child: Text('Hello MovieLog!'))),
+      home: Scaffold(body: Center(child: Text('Get In There!'))),
     ),
   );
 }
