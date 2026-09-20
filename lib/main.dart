@@ -1,4 +1,6 @@
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter/material.dart';
+
 import 'theme/app_theme.dart';
 
 void main() => runApp(const MovieLogApp());
@@ -32,7 +34,12 @@ class StartScreen extends StatelessWidget {
                   const SizedBox(height: 32),
                   const Text('FLUTTER 1주차'),
                   const SizedBox(height: 64),
-                  Icon(Icons.movie_outlined, size: 72, color: colors.primary),
+                  SvgPicture.asset(
+                    'assets/logos/movielog_logo.svg',
+                    width: 72,
+                    height: 72,
+                    semanticsLabel: 'MovieLog 로고',
+                  ),
                   const SizedBox(height: 32),
                   Text(
                     '영화의 순간을\n기록하세요',
