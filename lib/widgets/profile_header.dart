@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
+
+import '../theme/app_colors.dart';
 
 class ProfileHeader extends StatelessWidget {
   const ProfileHeader({super.key});
@@ -10,28 +11,31 @@ class ProfileHeader extends StatelessWidget {
 
     return Column(
       children: [
-        ClipOval(
-          child: Image.asset(
-            'assets/images/profile_movielog.jpg',
-            width: 88,
-            height: 88,
-            fit: BoxFit.cover,
+        Container(
+          width: 128,
+          height: 128,
+          padding: const EdgeInsets.all(2),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(color: AppColors.violet, width: 2),
+          ),
+          child: ClipOval(
+            child: Image.asset(
+              'assets/images/profile_movielog.jpg',
+              fit: BoxFit.cover,
+            ),
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 20),
         Text('무비러버', style: textTheme.titleLarge),
         const SizedBox(height: 8),
-        Text(
-          '좋아하는 영화를 기록하고 있어요',
-          style: textTheme.bodyMedium,
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 12),
-        SvgPicture.asset(
-          'assets/icons/movie.svg',
-          width: 24,
-          height: 24,
-          semanticsLabel: '영화 아이콘',
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 320),
+          child: Text(
+            '매주 주말엔 영화관으로 출근하는 프로 관람객.\n좋은 영화를 보고 기록하는 것을 좋아합니다.',
+            style: textTheme.bodyMedium,
+            textAlign: TextAlign.center,
+          ),
         ),
       ],
     );

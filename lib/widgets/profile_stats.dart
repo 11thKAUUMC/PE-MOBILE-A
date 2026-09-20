@@ -10,15 +10,15 @@ class ProfileStats extends StatelessWidget {
     return Row(
       children: const [
         Expanded(
-          child: StatItem(label: '본 영화', value: '24'),
+          child: StatItem(label: '본 영화', value: '342'),
         ),
         SizedBox(width: 8),
         Expanded(
-          child: StatItem(label: '평점', value: '18'),
+          child: StatItem(label: '평점', value: '4.2'),
         ),
         SizedBox(width: 8),
         Expanded(
-          child: StatItem(label: '즐겨찾기', value: '7'),
+          child: StatItem(label: '즐겨찾기', value: '58'),
         ),
       ],
     );

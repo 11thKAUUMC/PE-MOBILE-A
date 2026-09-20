@@ -8,4 +8,8 @@ abstract final class AppColors {
 
   static const black = Color(0xFF1C1B1F);
   static const gray = Color(0xFF79747E);
+
+  static const statSurface = Color(0xFFF5F3F0);
+  static const statBorder = Color(0xFFE9DDFF);
+  static const genreChip = Color(0xFFE9DDFF);
 }

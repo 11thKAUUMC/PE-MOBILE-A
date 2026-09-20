@@ -9,7 +9,7 @@ class CommonAppBar extends StatelessWidget implements PreferredSizeWidget {
     required this.title,
     this.onBack,
     this.actions,
-    this.centerTitle = true,
+    this.centerTitle = false,
   });
 
   final String title;
@@ -22,7 +22,10 @@ class CommonAppBar extends StatelessWidget implements PreferredSizeWidget {
     return AppBar(
       title: Text(
         title,
-        style: AppTextStyles.titleLarge.copyWith(color: AppColors.violet),
+        style: AppTextStyles.titleMedium.copyWith(
+          fontSize: 20,
+          color: AppColors.violet,
+        ),
       ),
       centerTitle: centerTitle,
       leading: onBack == null
