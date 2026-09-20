@@ -1,12 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'movie_log_app.dart';
+
 void main() {
-  runApp(
-    const MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: Scaffold(
-        body: Center(child: Text('문구를 바꿈')),
-      ),
-    ),
-  );
+  runApp(const MovieLogApp());
 }
