@@ -6,7 +6,7 @@
 // tree, read text, and verify that the values of widget properties are correct.
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:movielog/main.dart';
+import 'package:movielog/movie_log_app.dart';
 
 void main() {
   testWidgets('MovieLog 시작 화면이 표시된다', (tester) async {
