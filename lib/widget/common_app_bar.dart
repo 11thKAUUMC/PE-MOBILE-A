@@ -8,7 +8,7 @@ class CommonAppBar extends StatelessWidget implements PreferredSizeWidget {
     required this.title,
     this.onBack,
     this.actions,
-    this.centerTitle = false,
+    this.centerTitle = true,
     this.titleStyle,
   });
 
@@ -21,7 +21,7 @@ class CommonAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     return AppBar(
-      backgroundColor: AppColors.white,
+      backgroundColor: AppColors.warmWhite,
       surfaceTintColor: Colors.transparent,
       elevation: 0,
       scrolledUnderElevation: 0,
@@ -40,7 +40,7 @@ class CommonAppBar extends StatelessWidget implements PreferredSizeWidget {
           ? null
           : IconButton(
               icon: const Icon(Icons.arrow_back),
-              color: AppColors.violet,
+              color: AppColors.black,
               onPressed: onBack,
             ),
 
