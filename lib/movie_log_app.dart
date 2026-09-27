@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'start_screen.dart';
+import 'screens/start_screen.dart';
 import 'theme/app_theme.dart';
 
 class MovieLogApp extends StatelessWidget {
