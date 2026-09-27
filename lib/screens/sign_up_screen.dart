@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import '../theme/app_colors.dart';
+import '../widgets/sign_up_header.dart';
+import '../widgets/terms_agreement.dart';
+import '../widgets/sign_up_submit_button.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -98,6 +101,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
     );
   }
 
+  void _submit() {
+    final isValid = _formKey.currentState?.validate() ?? false;
+
+    if (!isValid) return;
+
+    FocusScope.of(context).unfocus();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -139,15 +150,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        const Text(
-                          '환영합니다!\n간단한 정보를 입력하고 시작해보세요.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 16,
-                            height: 1.55,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
+                        const SignUpHeader(),       // 회원가입 화면 상단의 환영 안내 문구
                         const SizedBox(height: 48),
                         _fieldLabel('닉네임'),
                         TextFormField(
@@ -192,40 +195,16 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           },
                         ),
                         const SizedBox(height: 196),
-                        Row(
-                          children: [
-                            SizedBox(
-                              width: 32,
-                              height: 32,
-                              child: Checkbox(
-                                value: _agreedToTerms,
-                                activeColor: AppColors.violet,
-                                onChanged: (value) {
-                                  setState(() => _agreedToTerms = value ?? false);
-                                },
-                              ),
-                            ),
-                            const SizedBox(width: 4),
-                            const Text(
-                              '필수 약관에 동의합니다',
-                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                            ),
-                          ],
+                        TermsAgreement(
+                          value: _agreedToTerms,
+                          onChanged: (value) {
+                            setState(() => _agreedToTerms = value);
+                          },
                         ),
                         const SizedBox(height: 20),
-                        SizedBox(
-                          height: 56,
-                          child: ElevatedButton(
-                            onPressed: _canSubmit ? () {} : null,
-                            style: ElevatedButton.styleFrom(
-                              disabledBackgroundColor: const Color(0xFFD3C7E3),
-                              disabledForegroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                            child: const Text('가입하기'),
-                          ),
+                        SignUpSubmitButton(
+                          enabled: _canSubmit,
+                          onPressed: _submit,
                         ),
                         const SizedBox(height: 30),
                         Center(
