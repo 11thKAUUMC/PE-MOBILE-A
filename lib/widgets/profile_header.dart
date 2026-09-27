@@ -21,7 +21,7 @@ class ProfileHeader extends StatelessWidget {
           ),
           child: ClipOval(
             child: Image.asset(
-              'assets/images/profile_movielog.jpg',
+              'assets/images/profile/profile_movielog.jpg',
               fit: BoxFit.cover,
             ),
           ),
