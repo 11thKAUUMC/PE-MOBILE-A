@@ -15,6 +15,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final _nicknameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _passwordFocusNode = FocusNode();
 
   // 디자인 예시의 선택 상태를 우선 반영합니다.
   bool _agreedToTerms = true;
@@ -24,6 +25,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     _nicknameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
+    _passwordFocusNode.dispose();
     super.dispose();
   }
 
@@ -147,6 +149,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           decoration: _inputDecoration(hintText: '닉네임을 입력해주세요'),
                           validator: _validateNickname,
                           onChanged: (_) => setState(() {}),
+                          onFieldSubmitted: (_) {
+                            FocusScope.of(context).nextFocus();
+                          },
                         ),
                         const SizedBox(height: 18),
                         _fieldLabel('이메일'),
@@ -159,6 +164,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           ),
                           validator: _validateEmail,
                           onChanged: (_) => setState(() {}),
+                          onFieldSubmitted: (_) {
+                            _passwordFocusNode.requestFocus();
+                          },
                         ),
                         const SizedBox(height: 18),
                         _fieldLabel('비밀번호'),
@@ -171,6 +179,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           ),
                           validator: _validatePassword,
                           onChanged: (_) => setState(() {}),
+                          focusNode: _passwordFocusNode,
+                          onFieldSubmitted: (_) {
+                            FocusScope.of(context).unfocus();
+                          },
                         ),
                         const SizedBox(height: 196),
                         Row(
