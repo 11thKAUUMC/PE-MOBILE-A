@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'sign_up_screen.dart';
 
 class StartScreen extends StatelessWidget {
   const StartScreen({super.key});
@@ -44,7 +45,11 @@ class StartScreen extends StatelessWidget {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () {}, // 1주차에는 화면 이동을 연결하지 않습니다.
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const SignUpScreen()),
+                    );
+                  }, // 1주차에는 화면 이동을 연결하지 않습니다.
                   style: ElevatedButton.styleFrom(
                     minimumSize: const Size(0, 48),
                     backgroundColor: colors.primary,
