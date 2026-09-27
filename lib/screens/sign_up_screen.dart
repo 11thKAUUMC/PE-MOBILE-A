@@ -18,7 +18,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final _passwordFocusNode = FocusNode();
 
   // 디자인 예시의 선택 상태를 우선 반영합니다.
-  bool _agreedToTerms = true;
+  bool _agreedToTerms = false;
 
   @override
   void dispose() {
@@ -54,6 +54,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
     if (password.length < 8) return '비밀번호는 8자 이상 입력해 주세요.';
 
     return null;
+  }
+
+  bool get _canSubmit {
+    return _nicknameController.text.trim().length >= 2 &&
+        _emailController.text.trim().contains('@') &&
+        _passwordController.text.length >= 8 &&
+        _agreedToTerms;
   }
 
   InputDecoration _inputDecoration({required String hintText}) {
@@ -209,7 +216,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         SizedBox(
                           height: 56,
                           child: ElevatedButton(
-                            onPressed: null,
+                            onPressed: _canSubmit ? () {} : null,
                             style: ElevatedButton.styleFrom(
                               disabledBackgroundColor: const Color(0xFFD3C7E3),
                               disabledForegroundColor: Colors.white,
