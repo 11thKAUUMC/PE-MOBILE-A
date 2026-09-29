@@ -14,10 +14,33 @@ class HomeScreen extends StatelessWidget {
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
-        child: SizedBox(
-          width: 180,
-          height: 280,
-          child: MovieCard(movie: movies.first),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '추천 영화',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              height: 280,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: movies.length,
+                separatorBuilder: (context, index) {
+                  return const SizedBox(width: 12);
+                },
+                itemBuilder: (context, index) {
+                  final movie = movies[index];
+
+                  return SizedBox(
+                    width: 180,
+                    child: MovieCard(movie: movie),
+                  );
+                },
+              ),
+            ),
+          ],
         ),
       ),
     );
