@@ -6,12 +6,13 @@ import '../screens/movie_list_screen.dart';
 import '../screens/profile_screen.dart';
 import '../screens/sign_up_screen.dart';
 import '../screens/start_screen.dart';
+import '../widgets/main_screen.dart';
 
 class AppRouter {
   AppRouter._();
 
   static final router = GoRouter(
-    initialLocation: '/start',
+    initialLocation: '/movies',
     routes: [
       GoRoute(
         path: '/start',
@@ -21,13 +22,34 @@ class AppRouter {
         path: '/signup',
         builder: (context, state) => const SignUpScreen(),
       ),
-      GoRoute(
-        path: '/home',
-        builder: (context, state) => const HomeScreen(),
-      ),
-      GoRoute(
-        path: '/movies',
-        builder: (context, state) => const MovieListScreen(),
+      ShellRoute(
+        builder: (context, state, child) {
+          final currentIndex = switch (state.uri.path) {
+            '/home' => 0,
+            '/movies' => 1,
+            '/my' => 2,
+            _ => 0,
+          };
+
+          return MainScreen(
+            currentIndex: currentIndex,
+            child: child,
+          );
+        },
+        routes: [
+          GoRoute(
+            path: '/home',
+            builder: (context, state) => const HomeScreen(),
+          ),
+          GoRoute(
+            path: '/movies',
+            builder: (context, state) => const MovieListScreen(),
+          ),
+          GoRoute(
+            path: '/my',
+            builder: (context, state) => const ProfileScreen(),
+          ),
+        ],
       ),
       GoRoute(
         path: '/movies/:movieId',
@@ -38,11 +60,7 @@ class AppRouter {
 
           return MovieDetailScreen(movieId: movieId);
         },
-      ),
-      GoRoute(
-        path: '/my',
-        builder: (context, state) => const ProfileScreen(),
-      ),
+      )
     ],
   );
 }
