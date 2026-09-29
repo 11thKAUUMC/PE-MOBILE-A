@@ -18,6 +18,7 @@ class MovieDetailScreen extends StatefulWidget {
 
 class _MovieDetailScreenState extends State<MovieDetailScreen> {
   double? myRating;
+  bool isFavorite = false;
 
   @override
   Widget build(BuildContext context) {
@@ -34,6 +35,30 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('영화 상세'),
+        actions: [
+          IconButton(
+            onPressed: () {
+              setState(() {
+                isFavorite = !isFavorite;
+              });
+
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    isFavorite
+                        ? '즐겨찾기에 추가했습니다.'
+                        : '즐겨찾기에서 삭제했습니다.',
+                  ),
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            },
+            icon: Icon(
+              isFavorite ? Icons.bookmark : Icons.bookmark_border,
+            ),
+            tooltip: isFavorite ? '즐겨찾기 삭제' : '즐겨찾기 추가',
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -56,7 +81,26 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
 
             // 평균 평점 표시
             const SizedBox(height: 16),
-            // RatingBarIndicator 코드
+
+            Row(
+              children: [
+                RatingBarIndicator(
+                  rating: 4.5,
+                  itemCount: 5,
+                  itemSize: 24,
+                  itemBuilder: (context, index) {
+                    return const Icon(
+                      Icons.star,
+                      color: Colors.amber,
+                    );
+                  },
+                ),
+                const SizedBox(width: 8),
+                const Text('4.5'),
+              ],
+            ),
+
+            const SizedBox(height: 24),
 
             // 이 위치에 평점 남기기 버튼 추가
             const SizedBox(height: 24),
