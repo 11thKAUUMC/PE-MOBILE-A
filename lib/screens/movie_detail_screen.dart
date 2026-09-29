@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 
 import '../data/mock_movies.dart';
+import '../widgets/rating_dialog.dart';
 
-class MovieDetailScreen extends StatelessWidget {
+class MovieDetailScreen extends StatefulWidget {
   const MovieDetailScreen({
     super.key,
     required this.movieId,
@@ -12,8 +13,15 @@ class MovieDetailScreen extends StatelessWidget {
   final int? movieId;
 
   @override
+  State<MovieDetailScreen> createState() => _MovieDetailScreenState();
+}
+
+class _MovieDetailScreenState extends State<MovieDetailScreen> {
+  double? myRating;
+
+  @override
   Widget build(BuildContext context) {
-    final movie = findMovieById(movieId);
+    final movie = findMovieById(widget.movieId);
 
     if (movie == null) {
       return const Scaffold(
@@ -45,24 +53,35 @@ class MovieDetailScreen extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text('${movie.genre} · ${movie.year}'),
+
+            // 평균 평점 표시
             const SizedBox(height: 16),
-            Row(
-              children: [
-                RatingBarIndicator(
-                  rating: 4.5,
-                  itemCount: 5,
-                  itemSize: 24,
-                  itemBuilder: (context, index) {
-                    return const Icon(
-                      Icons.star,
-                      color: Colors.amber,
-                    );
-                  },
-                ),
-                const SizedBox(width: 8),
-                const Text('4.5'),
-              ],
+            // RatingBarIndicator 코드
+
+            // 이 위치에 평점 남기기 버튼 추가
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: () async {
+                final rating = await showDialog<double>(
+                  context: context,
+                  builder: (_) => const RatingDialog(),
+                );
+
+                if (!mounted || rating == null) return;
+
+                setState(() {
+                  myRating = rating;
+                });
+              },
+              child: const Text('평점 남기기'),
             ),
+
+            if (myRating != null) ...[
+              const SizedBox(height: 12),
+              Text(
+                '내 평점: ${myRating!.toStringAsFixed(1)}',
+              ),
+            ],
           ],
         ),
       ),
