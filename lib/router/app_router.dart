@@ -32,7 +32,9 @@ class AppRouter {
       GoRoute(
         path: '/movies/:movieId',
         builder: (context, state) {
-          final movieId = state.pathParameters['movieId']!;
+          final movieId = int.tryParse(
+            state.pathParameters['movieId'] ?? '',
+          );
 
           return MovieDetailScreen(movieId: movieId);
         },
