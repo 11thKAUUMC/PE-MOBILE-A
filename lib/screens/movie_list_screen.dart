@@ -3,8 +3,15 @@ import 'package:flutter/material.dart';
 import '../data/mock_movies.dart';
 import '../widgets/movie_card.dart';
 
-class MovieListScreen extends StatelessWidget {
+class MovieListScreen extends StatefulWidget {
   const MovieListScreen({super.key});
+
+  @override
+  State<MovieListScreen> createState() => _MovieListScreenState();
+}
+
+class _MovieListScreenState extends State<MovieListScreen> {
+  String selectedGenre = '전체';
 
   @override
   Widget build(BuildContext context) {
@@ -17,6 +24,12 @@ class MovieListScreen extends StatelessWidget {
       '로맨스',
       '스릴러',
     ];
+
+    final filteredMovies = selectedGenre == '전체'
+        ? movies
+        : movies.where((movie) {
+            return movie.genre == selectedGenre;
+          }).toList();
 
     return Scaffold(
       appBar: AppBar(
@@ -41,8 +54,16 @@ class MovieListScreen extends StatelessWidget {
                   return const SizedBox(width: 8);
                 },
                 itemBuilder: (context, index) {
-                  return Chip(
-                    label: Text(genres[index]),
+                  final genre = genres[index];
+
+                  return ChoiceChip(
+                    label: Text(genre),
+                    selected: selectedGenre == genre,
+                    onSelected: (_) {
+                      setState(() {
+                        selectedGenre = genre;
+                      });
+                    },
                   );
                 },
               ),
@@ -50,7 +71,7 @@ class MovieListScreen extends StatelessWidget {
             const SizedBox(height: 20),
             Expanded(
               child: GridView.builder(
-                itemCount: movies.length,
+                itemCount: filteredMovies.length,
                 gridDelegate:
                     const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
@@ -59,7 +80,7 @@ class MovieListScreen extends StatelessWidget {
                   childAspectRatio: 0.65,
                 ),
                 itemBuilder: (context, index) {
-                  return MovieCard(movie: movies[index]);
+                  return MovieCard(movie: filteredMovies[index]);
                 },
               ),
             ),
