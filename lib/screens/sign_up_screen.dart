@@ -1,5 +1,5 @@
+import 'package:go_router/go_router.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 import '../theme/app_colors.dart';
 import '../widgets/sign_up_header.dart';
@@ -107,6 +107,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     if (!isValid) return;
 
     FocusScope.of(context).unfocus();
+    context.go('/home');
   }
 
   @override
@@ -120,14 +121,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
             color: AppColors.violet,
             fontSize: 22,
             fontWeight: FontWeight.w700,
-          ),
-        ),
-        leading: IconButton(
-          onPressed: () => Navigator.of(context).pop(),
-          icon: SvgPicture.asset(
-            'assets/icons/arrow_back.svg',
-            width: 24,
-            height: 24,
           ),
         ),
       ),
