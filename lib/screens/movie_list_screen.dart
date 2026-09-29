@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../data/mock_movies.dart';
+import '../theme/app_colors.dart';
 import '../widgets/movie_card.dart';
 
 class MovieListScreen extends StatefulWidget {
@@ -15,15 +16,7 @@ class _MovieListScreenState extends State<MovieListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    const genres = [
-      '전체',
-      '드라마',
-      '미스터리',
-      'SF',
-      '액션',
-      '로맨스',
-      '스릴러',
-    ];
+    const genres = ['전체', '드라마', '미스터리', 'SF', '액션', '로맨스', '스릴러'];
 
     final filteredMovies = selectedGenre == '전체'
         ? movies
@@ -33,20 +26,29 @@ class _MovieListScreenState extends State<MovieListScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('영화'),
+        centerTitle: false,
+        title: const Text(
+          '영화',
+          style: TextStyle(
+            color: AppColors.violet,
+            fontSize: 24,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        actions: [
+          IconButton(
+            onPressed: () {},
+            icon: const Icon(Icons.search, color: AppColors.violet),
+          ),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              '장르',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 12),
             SizedBox(
-              height: 40,
+              height: 44,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 itemCount: genres.length,
@@ -59,6 +61,15 @@ class _MovieListScreenState extends State<MovieListScreen> {
                   return ChoiceChip(
                     label: Text(genre),
                     selected: selectedGenre == genre,
+                    selectedColor: AppColors.violet,
+                    backgroundColor: const Color(0xFFE9E5EE),
+                    labelStyle: TextStyle(
+                      color: selectedGenre == genre
+                          ? Colors.white
+                          : AppColors.black,
+                      fontWeight: FontWeight.w700,
+                    ),
+                    shape: const StadiumBorder(side: BorderSide.none),
                     onSelected: (_) {
                       setState(() {
                         selectedGenre = genre;
@@ -68,16 +79,15 @@ class _MovieListScreenState extends State<MovieListScreen> {
                 },
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 24),
             Expanded(
               child: GridView.builder(
                 itemCount: filteredMovies.length,
-                gridDelegate:
-                    const SliverGridDelegateWithFixedCrossAxisCount(
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
                   crossAxisSpacing: 12,
                   mainAxisSpacing: 16,
-                  childAspectRatio: 0.65,
+                  childAspectRatio: 0.54,
                 ),
                 itemBuilder: (context, index) {
                   return MovieCard(movie: filteredMovies[index]);

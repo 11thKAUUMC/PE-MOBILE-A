@@ -51,6 +51,14 @@ abstract final class AppTheme {
       ),
     ),
 
+    navigationBarTheme: NavigationBarThemeData(
+      backgroundColor: AppColors.warmWhite,
+      indicatorColor: AppColors.genreChip,
+      labelTextStyle: WidgetStateProperty.all(
+        const TextStyle(fontWeight: FontWeight.w600),
+      ),
+    ),
+
     inputDecorationTheme: InputDecorationTheme(
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
     ),
