@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 
 import '../data/mock_movies.dart';
 
@@ -44,6 +45,24 @@ class MovieDetailScreen extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text('${movie.genre} · ${movie.year}'),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                RatingBarIndicator(
+                  rating: 4.5,
+                  itemCount: 5,
+                  itemSize: 24,
+                  itemBuilder: (context, index) {
+                    return const Icon(
+                      Icons.star,
+                      color: Colors.amber,
+                    );
+                  },
+                ),
+                const SizedBox(width: 8),
+                const Text('4.5'),
+              ],
+            ),
           ],
         ),
       ),
