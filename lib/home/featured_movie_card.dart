@@ -64,7 +64,9 @@ class _FeaturedMovieContent extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
             color: AppColors.violet.withValues(alpha: 0.6),
-            border: Border.all(color: AppColors.lavender.withValues(alpha: 0.5)),
+            border: Border.all(
+              color: AppColors.lavender.withValues(alpha: 0.5),
+            ),
             borderRadius: BorderRadius.circular(20),
           ),
           child: const Text(

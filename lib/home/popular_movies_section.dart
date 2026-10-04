@@ -30,10 +30,7 @@ class PopularMoviesSection extends StatelessWidget {
                 style: TextButton.styleFrom(foregroundColor: AppColors.violet),
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text('전체보기'),
-                    Icon(Icons.chevron_right, size: 20),
-                  ],
+                  children: [Text('전체보기'), Icon(Icons.chevron_right, size: 20)],
                 ),
               ),
             ],
