@@ -4,10 +4,7 @@ import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
 
 class FavoriteGenres extends StatelessWidget {
-  const FavoriteGenres({
-    super.key,
-    required this.genres,
-  });
+  const FavoriteGenres({super.key, required this.genres});
 
   final List<String> genres;
 
@@ -16,10 +13,7 @@ class FavoriteGenres extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          '선호하는 장르',
-          style: AppTextStyles.titleMedium,
-        ),
+        const Text('선호하는 장르', style: AppTextStyles.titleMedium),
         const SizedBox(height: 12),
         Wrap(
           spacing: 8,

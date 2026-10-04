@@ -26,10 +26,7 @@ class ProfileHeader extends StatelessWidget {
           padding: const EdgeInsets.all(3),
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            border: Border.all(
-              color: AppColors.lavender,
-              width: 2,
-            ),
+            border: Border.all(color: AppColors.lavender, width: 2),
           ),
           child: hasImage
               ? ClipOval(
@@ -64,11 +61,7 @@ class ProfileHeader extends StatelessWidget {
           overflow: TextOverflow.ellipsis,
         ),
         const SizedBox(height: 8),
-        Text(
-          bio,
-          textAlign: TextAlign.center,
-          style: AppTextStyles.bodySmall,
-        ),
+        Text(bio, textAlign: TextAlign.center, style: AppTextStyles.bodySmall),
       ],
     );
   }
