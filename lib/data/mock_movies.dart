@@ -93,6 +93,8 @@ const movies = [
   ),
 ];
 
+final movieGenres = movies.map((movie) => movie.genre).toSet().toList();
+
 Movie? findMovieById(int? id) {
   for (final movie in movies) {
     if (movie.id == id) return movie;
