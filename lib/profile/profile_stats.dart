@@ -4,10 +4,7 @@ import '../widgets/stat_item.dart';
 import 'profile_stat.dart';
 
 class ProfileStats extends StatelessWidget {
-  const ProfileStats({
-    super.key,
-    required this.stats,
-  });
+  const ProfileStats({super.key, required this.stats});
 
   final List<ProfileStat> stats;
 
@@ -19,10 +16,7 @@ class ProfileStats extends StatelessWidget {
       children: [
         for (final stat in stats)
           Expanded(
-            child: StatItem(
-              label: stat.label,
-              value: stat.value,
-            ),
+            child: StatItem(label: stat.label, value: stat.value),
           ),
       ],
     );

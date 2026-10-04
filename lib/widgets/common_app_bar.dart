@@ -24,20 +24,16 @@ class CommonAppBar extends StatelessWidget implements PreferredSizeWidget {
     return AppBar(
       title: Text(
         title,
-        style: titleStyle ??
-            AppTextStyles.titleLarge.copyWith(
-              color: AppColors.violet,
-            ),
+        style:
+            titleStyle ??
+            AppTextStyles.titleLarge.copyWith(color: AppColors.violet),
       ),
       centerTitle: centerTitle,
       titleSpacing: onBack == null ? 24 : NavigationToolbar.kMiddleSpacing,
       automaticallyImplyLeading: onBack != null,
       leading: onBack == null
           ? null
-          : IconButton(
-              icon: const Icon(Icons.arrow_back),
-              onPressed: onBack,
-            ),
+          : IconButton(icon: const Icon(Icons.arrow_back), onPressed: onBack),
       actions: actions,
     );
   }

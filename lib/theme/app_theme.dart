@@ -50,6 +50,33 @@ abstract final class AppTheme {
         shape: const StadiumBorder(),
       ),
     ),
+    inputDecorationTheme: const InputDecorationTheme(
+      filled: true,
+      fillColor: AppColors.inputFill,
+      contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+      hintStyle: TextStyle(fontSize: 16, color: AppColors.darkGray),
+      errorStyle: TextStyle(fontSize: 12, color: AppColors.error),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.all(Radius.circular(8)),
+        borderSide: BorderSide(color: AppColors.outline),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.all(Radius.circular(8)),
+        borderSide: BorderSide(color: AppColors.violet, width: 2),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.all(Radius.circular(8)),
+        borderSide: BorderSide(color: AppColors.error),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.all(Radius.circular(8)),
+        borderSide: BorderSide(color: AppColors.error, width: 2),
+      ),
+    ),
+    checkboxTheme: CheckboxThemeData(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+      side: const BorderSide(color: AppColors.outline, width: 1.5),
+    ),
     chipTheme: const ChipThemeData(
       backgroundColor: AppColors.lavender,
       selectedColor: AppColors.lavender,
