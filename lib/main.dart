@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:movielog/screens/signup_screen.dart';
-
-import 'screens/profile_screen.dart';
+import 'package:movielog/router/app_router.dart';
+import 'package:movielog/theme/app_theme.dart';
 
 void main() {
   runApp(const MyApp());
@@ -12,9 +11,11 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
+    return MaterialApp.router(
       debugShowCheckedModeBanner: false,
-      home: SignUpScreen(),
+      title: 'MovieLog',
+      theme: AppTheme.light,
+      routerConfig: AppRouter.router,
     );
   }
 }

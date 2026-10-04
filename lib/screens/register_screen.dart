@@ -2,15 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:movielog/theme/app_colors.dart';
 import 'package:movielog/widget/common_app_bar.dart';
 import 'package:movielog/widget/signup_input.dart';
+import 'package:go_router/go_router.dart';
 
-class SignUpScreen extends StatefulWidget {
-  const SignUpScreen({super.key});
+class RegisterScreen extends StatefulWidget {
+  const RegisterScreen({super.key});
 
   @override
-  State<SignUpScreen> createState() => _SignUpScreenState();
+  State<RegisterScreen> createState() => _RegisterScreenState();
 }
 
-class _SignUpScreenState extends State<SignUpScreen> {
+class _RegisterScreenState extends State<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
 
   final nicknameController = TextEditingController();
@@ -67,6 +68,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
     ScaffoldMessenger.of(context)
         .showSnackBar(const SnackBar(content: Text('가입 조건을 모두 만족했습니다.')));
+
+    context.go('/home');
   }
 
   @override
@@ -85,10 +88,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.warmWhite,
-      appBar: CommonAppBar(
-        title: '회원가입',
-        onBack: () => Navigator.maybePop(context),
-      ),
+      appBar: CommonAppBar(title: '회원가입', onBack: () => context.pop()),
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
@@ -200,7 +200,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                               const Text('이미 계정이 있나요?'),
                               const SizedBox(width: 4),
                               TextButton(
-                                onPressed: () => Navigator.maybePop(context),
+                                onPressed: () => context.pop(),
                                 style: TextButton.styleFrom(
                                   foregroundColor: AppColors.primary,
                                   padding: EdgeInsets.zero,

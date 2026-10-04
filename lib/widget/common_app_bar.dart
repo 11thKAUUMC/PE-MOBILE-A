@@ -8,7 +8,7 @@ class CommonAppBar extends StatelessWidget implements PreferredSizeWidget {
     required this.title,
     this.onBack,
     this.actions,
-    this.centerTitle = true,
+    this.centerTitle = false,
     this.titleStyle,
   });
 
