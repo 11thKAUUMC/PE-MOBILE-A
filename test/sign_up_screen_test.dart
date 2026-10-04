@@ -81,6 +81,34 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('세로 휴대폰에서는 약관과 가입 버튼이 화면 하단에 붙는다', (tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(_app());
+
+    final promptBottom = tester.getBottomLeft(find.textContaining('이미 계정이')).dy;
+    expect(promptBottom, greaterThan(844 - 80));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('가로 모드 휴대폰에서도 Overflow가 없다', (tester) async {
+    tester.view.physicalSize = const Size(800, 360);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(_app());
+    expect(tester.takeException(), isNull);
+
+    final fields = find.byType(TextFormField);
+    await tester.enterText(fields.at(0), '무비러버');
+    await tester.enterText(fields.at(1), 'movie@example.com');
+    await tester.enterText(fields.at(2), 'password123');
+    await tester.pump();
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('비밀번호 표시 버튼으로 입력값을 보이거나 숨긴다', (tester) async {
     await tester.pumpWidget(_app());
 

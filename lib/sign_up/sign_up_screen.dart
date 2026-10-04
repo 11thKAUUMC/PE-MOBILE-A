@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../widgets/common_app_bar.dart';
@@ -82,25 +84,25 @@ class _SignUpScreenState extends State<SignUpScreen> {
         child: LayoutBuilder(
           builder: (context, constraints) {
             final isWide = constraints.maxWidth >= SignUpScreen.wideBreakpoint;
+            final horizontalPadding = isWide
+                ? math.max(
+                    24.0,
+                    (constraints.maxWidth - SignUpScreen.maxFormWidth) / 2,
+                  )
+                : 24.0;
 
             return SingleChildScrollView(
               keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
               child: ConstrainedBox(
                 constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                child: IntrinsicHeight(
-                  child: Center(
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(
-                        maxWidth: isWide
-                            ? SignUpScreen.maxFormWidth
-                            : double.infinity,
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
-                        child: _buildForm(isWide: isWide),
-                      ),
-                    ),
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    horizontalPadding,
+                    24,
+                    horizontalPadding,
+                    32,
                   ),
+                  child: _buildForm(isWide: isWide),
                 ),
               ),
             );
@@ -115,58 +117,68 @@ class _SignUpScreenState extends State<SignUpScreen> {
       key: _formKey,
       autovalidateMode: AutovalidateMode.onUserInteraction,
       child: Column(
+        mainAxisAlignment: isWide
+            ? MainAxisAlignment.center
+            : MainAxisAlignment.spaceBetween,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (isWide) const Spacer(),
-          SignUpHeader(showTitle: isWide),
-          const SizedBox(height: 40),
-          MovieLogTextFormField(
-            label: '닉네임',
-            hint: '닉네임을 입력해주세요',
-            controller: _nicknameController,
-            validator: SignUpValidators.nickname,
-            showStatus: _showStatus(_nicknameController),
-            textInputAction: TextInputAction.next,
-            onChanged: (_) => _markTouched(_nicknameController),
-            onFieldSubmitted: (_) => _emailFocusNode.requestFocus(),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SignUpHeader(showTitle: isWide),
+              const SizedBox(height: 40),
+              MovieLogTextFormField(
+                label: '닉네임',
+                hint: '닉네임을 입력해주세요',
+                controller: _nicknameController,
+                validator: SignUpValidators.nickname,
+                showStatus: _showStatus(_nicknameController),
+                textInputAction: TextInputAction.next,
+                onChanged: (_) => _markTouched(_nicknameController),
+                onFieldSubmitted: (_) => _emailFocusNode.requestFocus(),
+              ),
+              const SizedBox(height: 16),
+              MovieLogTextFormField(
+                label: '이메일',
+                hint: '이메일 주소를 입력해주세요',
+                controller: _emailController,
+                focusNode: _emailFocusNode,
+                validator: SignUpValidators.email,
+                showStatus: _showStatus(_emailController),
+                keyboardType: TextInputType.emailAddress,
+                textInputAction: TextInputAction.next,
+                onChanged: (_) => _markTouched(_emailController),
+                onFieldSubmitted: (_) => _passwordFocusNode.requestFocus(),
+              ),
+              const SizedBox(height: 16),
+              MovieLogTextFormField(
+                label: '비밀번호',
+                hint: '비밀번호를 입력해주세요',
+                controller: _passwordController,
+                focusNode: _passwordFocusNode,
+                validator: SignUpValidators.password,
+                showStatus: _showStatus(_passwordController),
+                isPassword: true,
+                textInputAction: TextInputAction.done,
+                onChanged: (_) => _markTouched(_passwordController),
+                onFieldSubmitted: (_) => FocusScope.of(context).unfocus(),
+              ),
+              const SizedBox(height: 32),
+            ],
           ),
-          const SizedBox(height: 16),
-          MovieLogTextFormField(
-            label: '이메일',
-            hint: '이메일 주소를 입력해주세요',
-            controller: _emailController,
-            focusNode: _emailFocusNode,
-            validator: SignUpValidators.email,
-            showStatus: _showStatus(_emailController),
-            keyboardType: TextInputType.emailAddress,
-            textInputAction: TextInputAction.next,
-            onChanged: (_) => _markTouched(_emailController),
-            onFieldSubmitted: (_) => _passwordFocusNode.requestFocus(),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              TermsAgreement(
+                agreed: _agreedToTerms,
+                onChanged: (value) => setState(() => _agreedToTerms = value),
+              ),
+              const SizedBox(height: 24),
+              SignUpSubmitButton(onPressed: _canSubmit ? _submit : null),
+              const SizedBox(height: 40),
+              const SignInPrompt(),
+            ],
           ),
-          const SizedBox(height: 16),
-          MovieLogTextFormField(
-            label: '비밀번호',
-            hint: '비밀번호를 입력해주세요',
-            controller: _passwordController,
-            focusNode: _passwordFocusNode,
-            validator: SignUpValidators.password,
-            showStatus: _showStatus(_passwordController),
-            isPassword: true,
-            textInputAction: TextInputAction.done,
-            onChanged: (_) => _markTouched(_passwordController),
-            onFieldSubmitted: (_) => FocusScope.of(context).unfocus(),
-          ),
-          const SizedBox(height: 32),
-          if (!isWide) const Spacer(),
-          TermsAgreement(
-            agreed: _agreedToTerms,
-            onChanged: (value) => setState(() => _agreedToTerms = value),
-          ),
-          const SizedBox(height: 24),
-          SignUpSubmitButton(onPressed: _canSubmit ? _submit : null),
-          const SizedBox(height: 40),
-          const SignInPrompt(),
-          if (isWide) const Spacer(),
         ],
       ),
     );
