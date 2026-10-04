@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 
+import '../data/mock_movies.dart';
 import '../home/home_screen.dart';
 import '../main/main_screen.dart';
 import '../movie_detail/movie_detail_screen.dart';
@@ -18,52 +19,68 @@ class AppRouter {
     navigatorKey: _rootNavigatorKey,
     initialLocation: '/start',
     routes: [
-      GoRoute(
-        path: '/start',
-        builder: (context, state) => const StartScreen(),
-      ),
+      GoRoute(path: '/start', builder: (context, state) => const StartScreen()),
       GoRoute(
         path: '/register',
         builder: (context, state) => const SignUpScreen(),
       ),
-      ShellRoute(
-        builder: (context, state, child) {
-          return MainScreen(
-            currentIndex: indexFromLocation(state.uri.path),
-            child: child,
-          );
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, navigationShell) {
+          return MainScreen(navigationShell: navigationShell);
         },
-        routes: [
-          GoRoute(
-            path: '/home',
-            builder: (context, state) => const HomeScreen(),
-          ),
-          GoRoute(
-            path: '/movies',
-            builder: (context, state) => const MovieListScreen(),
+        branches: [
+          StatefulShellBranch(
             routes: [
               GoRoute(
-                path: ':movieId',
-                parentNavigatorKey: _rootNavigatorKey,
-                builder: (context, state) => MovieDetailScreen(
-                  movieId: state.pathParameters['movieId']!,
-                ),
+                path: '/home',
+                builder: (context, state) => const HomeScreen(),
               ),
             ],
           ),
-          GoRoute(
-            path: '/my',
-            builder: (context, state) => const ProfileScreen(),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/movies',
+                builder: (context, state) => MovieListScreen(
+                  selectedGenres: genresFromQuery(
+                    state.uri.queryParameters['genres'],
+                  ),
+                ),
+                routes: [
+                  GoRoute(
+                    path: ':movieId',
+                    parentNavigatorKey: _rootNavigatorKey,
+                    builder: (context, state) => MovieDetailScreen(
+                      movieId: state.pathParameters['movieId']!,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/my',
+                builder: (context, state) => const ProfileScreen(),
+              ),
+            ],
           ),
         ],
       ),
     ],
   );
 
-  static int indexFromLocation(String path) {
-    if (path.startsWith('/movies')) return 1;
-    if (path.startsWith('/my')) return 2;
+  static Set<String> genresFromQuery(String? query) {
+    if (query == null || query.isEmpty) return {};
 
-    return 0;
+    return query.split(',').where(movieGenres.contains).toSet();
+  }
+
+  static String moviesLocation(Set<String> genres) {
+    return Uri(
+      path: '/movies',
+      queryParameters: genres.isEmpty ? null : {'genres': genres.join(',')},
+    ).toString();
   }
 }

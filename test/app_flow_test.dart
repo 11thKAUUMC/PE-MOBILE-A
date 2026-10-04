@@ -67,10 +67,55 @@ void main() {
     expect(find.byType(GridView), findsOneWidget);
   });
 
-  testWidgets('장르 Chip을 누르면 해당 장르 영화만 보인다', (tester) async {
+  testWidgets('필터 BottomSheet에서 확인을 눌러야 장르가 적용된다', (tester) async {
     await _pumpAppAt(tester, '/movies');
 
-    await tester.tap(find.widgetWithText(ChoiceChip, 'SF'));
+    await tester.tap(find.byTooltip('장르 필터'));
+    await tester.pumpAndSettle();
+    expect(find.byType(DraggableScrollableSheet), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(CheckboxListTile, 'SF'));
+    await tester.tap(find.widgetWithText(CheckboxListTile, '스릴러'));
+    await tester.pump();
+    expect(find.text('별빛 아래 우리'), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(ElevatedButton, '확인'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(BottomSheet), findsNothing);
+    expect(find.text('우주의 끝에서'), findsOneWidget);
+    expect(find.text('밤의 그림자'), findsOneWidget);
+    expect(find.text('별빛 아래 우리'), findsNothing);
+    expect(
+      AppRouter
+          .router
+          .routeInformationProvider
+          .value
+          .uri
+          .queryParameters['genres'],
+      'SF,스릴러',
+    );
+  });
+
+  testWidgets('선택 없이 확인하면 전체 영화 목록이 보인다', (tester) async {
+    await _pumpAppAt(tester, '/movies?genres=SF');
+    expect(find.text('별빛 아래 우리'), findsNothing);
+
+    await tester.tap(find.byTooltip('장르 필터'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(CheckboxListTile, 'SF'));
+    await tester.tap(find.widgetWithText(ElevatedButton, '확인'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('별빛 아래 우리'), findsOneWidget);
+  });
+
+  testWidgets('탭을 바꿨다 돌아와도 영화 탭의 필터 상태가 유지된다', (tester) async {
+    await _pumpAppAt(tester, '/movies?genres=SF');
+
+    await tester.tap(find.text('홈'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('영화'));
     await tester.pumpAndSettle();
 
     expect(find.text('우주의 끝에서'), findsOneWidget);
@@ -113,10 +158,12 @@ void main() {
     expect(confirmButton().onPressed, isNull);
 
     await tester.tap(
-      find.descendant(
-        of: find.byType(MovieRatingInput),
-        matching: find.byIcon(Icons.star),
-      ).at(3),
+      find
+          .descendant(
+            of: find.byType(MovieRatingInput),
+            matching: find.byIcon(Icons.star),
+          )
+          .at(3),
     );
     await tester.pump();
     expect(confirmButton().onPressed, isNotNull);
@@ -125,6 +172,33 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(Dialog), findsNothing);
     expect(find.textContaining('내 평점'), findsOneWidget);
+  });
+
+  testWidgets('평점 Dialog에서 초기화 후 다시 선택할 수 있다', (tester) async {
+    await _pumpAppAt(tester, '/movies/1');
+
+    await tester.tap(find.text('평점 남기기'));
+    await tester.pumpAndSettle();
+
+    Finder stars() => find.descendant(
+      of: find.byType(MovieRatingInput),
+      matching: find.byIcon(Icons.star),
+    );
+    ElevatedButton confirmButton() =>
+        tester.widget(find.widgetWithText(ElevatedButton, '확인'));
+
+    await tester.tap(stars().at(4));
+    await tester.pump();
+    expect(confirmButton().onPressed, isNotNull);
+
+    await tester.tap(find.text('초기화하고 다시 선택하기'));
+    await tester.pump();
+    expect(find.text('별을 눌러 평점을 선택해주세요'), findsOneWidget);
+    expect(confirmButton().onPressed, isNull);
+
+    await tester.tap(stars().at(1));
+    await tester.pump();
+    expect(confirmButton().onPressed, isNotNull);
   });
 
   testWidgets('존재하지 않는 영화 ID는 안내 문구를 보여준다', (tester) async {

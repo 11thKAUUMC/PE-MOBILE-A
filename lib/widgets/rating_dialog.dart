@@ -15,6 +15,14 @@ class RatingDialog extends StatefulWidget {
 
 class _RatingDialogState extends State<RatingDialog> {
   late double _rating = widget.initialRating;
+  int _resetCount = 0;
+
+  void _reset() {
+    setState(() {
+      _rating = 0;
+      _resetCount++;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -33,6 +41,7 @@ class _RatingDialogState extends State<RatingDialog> {
             ),
             const SizedBox(height: 24),
             MovieRatingInput(
+              key: ValueKey(_resetCount),
               rating: _rating,
               onChanged: (value) => setState(() => _rating = value),
             ),
@@ -44,7 +53,12 @@ class _RatingDialogState extends State<RatingDialog> {
                 fontWeight: hasRating ? FontWeight.w700 : FontWeight.w400,
               ),
             ),
-            const SizedBox(height: 24),
+            TextButton.icon(
+              onPressed: hasRating ? _reset : null,
+              icon: const Icon(Icons.refresh, size: 18),
+              label: const Text('초기화하고 다시 선택하기'),
+            ),
+            const SizedBox(height: 16),
             Row(
               children: [
                 Expanded(

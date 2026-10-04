@@ -14,8 +14,6 @@ abstract final class AppColors {
 
   static const inputFill = Color(0xFFF3F1EE);
   static const outline = Color(0xFFCAC4D0);
-  static const chipUnselected = Color(0xFFE7E0EC);
-
   static const error = Color(0xFFB3261E);
   static const errorContainer = Color(0xFFFFDAD6);
 }
