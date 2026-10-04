@@ -67,4 +67,29 @@ void main() {
 
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('넓은 화면에서는 Form 너비가 560 이하로 제한된다', (tester) async {
+    tester.view.physicalSize = const Size(1024, 955);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(_app());
+
+    expect(find.byType(AppBar), findsNothing);
+    expect(find.text('MovieLog에 오신 것을 환영합니다!'), findsOneWidget);
+    expect(tester.getSize(find.byType(Form)).width, lessThanOrEqualTo(560));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('비밀번호 표시 버튼으로 입력값을 보이거나 숨긴다', (tester) async {
+    await tester.pumpWidget(_app());
+
+    EditableText passwordText() =>
+        tester.widget<EditableText>(find.byType(EditableText).at(2));
+
+    expect(passwordText().obscureText, isTrue);
+    await tester.tap(find.byTooltip('비밀번호 표시'));
+    await tester.pump();
+    expect(passwordText().obscureText, isFalse);
+  });
 }
