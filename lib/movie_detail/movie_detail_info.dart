@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 
 import '../models/movie.dart';
 import '../theme/app_colors.dart';
@@ -8,6 +9,13 @@ class MovieDetailInfo extends StatelessWidget {
   const MovieDetailInfo({super.key, required this.movie});
 
   final Movie movie;
+
+  static String _formatCount(int count) {
+    return count.toString().replaceAllMapped(
+      RegExp(r'\B(?=(\d{3})+(?!\d))'),
+      (match) => ',',
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -22,6 +30,31 @@ class MovieDetailInfo extends StatelessWidget {
             '${movie.year} • ${movie.tags.take(2).join('/')} • '
             '${movie.runtimeMinutes}분',
             style: AppTextStyles.bodySmall.copyWith(color: AppColors.darkGray),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              RatingBarIndicator(
+                rating: movie.rating,
+                itemCount: 5,
+                itemSize: 20,
+                itemBuilder: (context, index) {
+                  return const Icon(Icons.star, color: AppColors.violet);
+                },
+              ),
+              const SizedBox(width: 8),
+              Text(
+                movie.rating.toStringAsFixed(1),
+                style: AppTextStyles.bodyMedium.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(width: 4),
+              Text(
+                '(${_formatCount(movie.ratingCount)})',
+                style: AppTextStyles.bodySmall,
+              ),
+            ],
           ),
           const SizedBox(height: 16),
           Wrap(

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:movielog/movie_log_app.dart';
 import 'package:movielog/router/app_router.dart';
+import 'package:movielog/widgets/movie_rating_input.dart';
 
 Future<void> _pumpAppAt(WidgetTester tester, String location) async {
   tester.view.physicalSize = const Size(390, 844);
@@ -73,6 +75,56 @@ void main() {
 
     expect(find.text('우주의 끝에서'), findsOneWidget);
     expect(find.text('별빛 아래 우리'), findsNothing);
+  });
+
+  testWidgets('상세 화면에 평균 평점 4.5가 읽기 전용으로 보인다', (tester) async {
+    await _pumpAppAt(tester, '/movies/1');
+
+    final indicator = tester.widget<RatingBarIndicator>(
+      find.byType(RatingBarIndicator),
+    );
+    expect(indicator.rating, 4.5);
+    expect(find.text('4.5'), findsOneWidget);
+  });
+
+  testWidgets('즐겨찾기 추가·삭제 결과를 Snackbar와 아이콘으로 보여준다', (tester) async {
+    await _pumpAppAt(tester, '/movies/1');
+
+    await tester.tap(find.text('즐겨찾기'));
+    await tester.pump();
+    expect(find.text('즐겨찾기에 추가했습니다.'), findsOneWidget);
+    expect(find.byIcon(Icons.bookmark), findsOneWidget);
+
+    await tester.tap(find.text('즐겨찾기'));
+    await tester.pump();
+    expect(find.text('즐겨찾기에서 삭제했습니다.'), findsOneWidget);
+    expect(find.byIcon(Icons.bookmark_border), findsOneWidget);
+  });
+
+  testWidgets('평점 Dialog는 별을 선택해야 확인 버튼이 활성화된다', (tester) async {
+    await _pumpAppAt(tester, '/movies/1');
+
+    await tester.tap(find.text('평점 남기기'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(MovieRatingInput), findsOneWidget);
+    ElevatedButton confirmButton() =>
+        tester.widget(find.widgetWithText(ElevatedButton, '확인'));
+    expect(confirmButton().onPressed, isNull);
+
+    await tester.tap(
+      find.descendant(
+        of: find.byType(MovieRatingInput),
+        matching: find.byIcon(Icons.star),
+      ).at(3),
+    );
+    await tester.pump();
+    expect(confirmButton().onPressed, isNotNull);
+
+    await tester.tap(find.widgetWithText(ElevatedButton, '확인'));
+    await tester.pumpAndSettle();
+    expect(find.byType(Dialog), findsNothing);
+    expect(find.textContaining('내 평점'), findsOneWidget);
   });
 
   testWidgets('존재하지 않는 영화 ID는 안내 문구를 보여준다', (tester) async {
