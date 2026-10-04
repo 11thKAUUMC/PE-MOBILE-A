@@ -1,6 +1,7 @@
 import 'package:go_router/go_router.dart';
 
 import '../home/home_screen.dart';
+import '../movie_detail/movie_detail_screen.dart';
 import '../sign_up/sign_up_screen.dart';
 import '../start_screen.dart';
 
@@ -21,6 +22,11 @@ class AppRouter {
       GoRoute(
         path: '/home',
         builder: (context, state) => const HomeScreen(),
+      ),
+      GoRoute(
+        path: '/movies/:movieId',
+        builder: (context, state) =>
+            MovieDetailScreen(movieId: state.pathParameters['movieId']!),
       ),
     ],
   );
