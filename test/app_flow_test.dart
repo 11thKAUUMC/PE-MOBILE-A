@@ -17,6 +17,28 @@ Future<void> _pumpAppAt(WidgetTester tester, String location) async {
 }
 
 void main() {
+  testWidgets('시작 → 회원가입 → 홈으로 이동하고 뒤로 가기가 막혀 있다', (tester) async {
+    await _pumpAppAt(tester, '/start');
+
+    await tester.tap(find.text('시작하기'));
+    await tester.pumpAndSettle();
+    expect(find.text('회원가입'), findsOneWidget);
+    expect(find.byIcon(Icons.arrow_back), findsNothing);
+    expect(AppRouter.router.canPop(), isFalse);
+
+    final fields = find.byType(TextFormField);
+    await tester.enterText(fields.at(0), '무비러버');
+    await tester.enterText(fields.at(1), 'movie@example.com');
+    await tester.enterText(fields.at(2), 'password123');
+    await tester.tap(find.byType(Checkbox));
+    await tester.pump();
+    await tester.tap(find.text('가입하기'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('오늘은 어떤\n영화를 볼까요?'), findsOneWidget);
+    expect(AppRouter.router.canPop(), isFalse);
+  });
+
   testWidgets('홈 추천 카드에서 상세로 이동하고 뒤로 돌아온다', (tester) async {
     await _pumpAppAt(tester, '/home');
 
@@ -200,6 +222,16 @@ void main() {
     await tester.pump();
     expect(confirmButton().onPressed, isNotNull);
   });
+
+  for (final location in ['/home', '/movies', '/movies/1', '/my']) {
+    testWidgets('작은 화면에서도 $location 화면에 Overflow가 없다', (tester) async {
+      await _pumpAppAt(tester, location);
+      tester.view.physicalSize = const Size(360, 640);
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+    });
+  }
 
   testWidgets('존재하지 않는 영화 ID는 안내 문구를 보여준다', (tester) async {
     await _pumpAppAt(tester, '/movies/999');
