@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'start_screen.dart';
+import 'router/app_router.dart';
 import 'theme/app_theme.dart';
 
 class MovieLogApp extends StatelessWidget {
@@ -8,11 +8,11 @@ class MovieLogApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return MaterialApp.router(
       debugShowCheckedModeBanner: false,
       title: 'MovieLog',
       theme: AppTheme.light,
-      home: const StartScreen(),
+      routerConfig: AppRouter.router,
     );
   }
 }
