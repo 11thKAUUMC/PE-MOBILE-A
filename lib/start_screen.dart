@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import 'sign_up/sign_up_screen.dart';
 import 'theme/app_colors.dart';
 import 'theme/app_text_styles.dart';
 
@@ -19,10 +20,7 @@ class StartScreen extends StatelessWidget {
               Column(
                 children: [
                   const SizedBox(height: 24),
-                  const Text(
-                    'FLUTTER 1주차',
-                    style: AppTextStyles.labelSmall,
-                  ),
+                  const Text('FLUTTER 1주차', style: AppTextStyles.labelSmall),
                   const SizedBox(height: 72),
                   SvgPicture.asset(
                     'assets/logos/movielog_logo.svg',
@@ -49,7 +47,13 @@ class StartScreen extends StatelessWidget {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () {},
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const SignUpScreen(),
+                      ),
+                    );
+                  },
                   style: ElevatedButton.styleFrom(
                     minimumSize: const Size(0, 56),
                     backgroundColor: AppColors.violet,
