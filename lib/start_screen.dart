@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:go_router/go_router.dart';
 
-import 'sign_up/sign_up_screen.dart';
 import 'theme/app_colors.dart';
 import 'theme/app_text_styles.dart';
 
@@ -47,13 +47,7 @@ class StartScreen extends StatelessWidget {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) => const SignUpScreen(),
-                      ),
-                    );
-                  },
+                  onPressed: () => context.go('/register'),
                   style: ElevatedButton.styleFrom(
                     minimumSize: const Size(0, 56),
                     backgroundColor: AppColors.violet,

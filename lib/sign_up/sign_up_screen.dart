@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../widgets/common_app_bar.dart';
 import '../widgets/movie_log_text_form_field.dart';
@@ -64,7 +65,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
     FocusScope.of(context).unfocus();
     ScaffoldMessenger.of(context)
-        .showSnackBar(const SnackBar(content: Text('회원가입 정보가 모두 확인되었습니다.')));
+        .showSnackBar(const SnackBar(content: Text('회원가입이 완료되었습니다.')));
+    context.go('/home');
   }
 
   @override
@@ -75,11 +77,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     return Scaffold(
       appBar: isWideWindow
           ? null
-          : CommonAppBar(
-              title: '회원가입',
-              centerTitle: true,
-              onBack: () => Navigator.of(context).maybePop(),
-            ),
+          : const CommonAppBar(title: '회원가입', centerTitle: true),
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {

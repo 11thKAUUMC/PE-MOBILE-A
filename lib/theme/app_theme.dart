@@ -73,6 +73,11 @@ abstract final class AppTheme {
         borderSide: BorderSide(color: AppColors.error, width: 2),
       ),
     ),
+    navigationBarTheme: const NavigationBarThemeData(
+      backgroundColor: AppColors.warmWhite,
+      indicatorColor: AppColors.lavender,
+      surfaceTintColor: Colors.transparent,
+    ),
     checkboxTheme: CheckboxThemeData(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
       side: const BorderSide(color: AppColors.outline, width: 1.5),
