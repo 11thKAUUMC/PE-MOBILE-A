@@ -1,7 +1,6 @@
 import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 
-import '../data/mock_movies.dart';
 import '../home/home_screen.dart';
 import '../main/main_screen.dart';
 import '../movie_detail/movie_detail_screen.dart';
@@ -41,11 +40,7 @@ class AppRouter {
             routes: [
               GoRoute(
                 path: '/movies',
-                builder: (context, state) => MovieListScreen(
-                  selectedGenres: genresFromQuery(
-                    state.uri.queryParameters['genres'],
-                  ),
-                ),
+                builder: (context, state) => const MovieListScreen(),
                 routes: [
                   GoRoute(
                     path: ':movieId',
@@ -70,17 +65,4 @@ class AppRouter {
       ),
     ],
   );
-
-  static Set<String> genresFromQuery(String? query) {
-    if (query == null || query.isEmpty) return {};
-
-    return query.split(',').where(movieGenres.contains).toSet();
-  }
-
-  static String moviesLocation(Set<String> genres) {
-    return Uri(
-      path: '/movies',
-      queryParameters: genres.isEmpty ? null : {'genres': genres.join(',')},
-    ).toString();
-  }
 }

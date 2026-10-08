@@ -1,9 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
+import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 
+import 'package:movielog/models/movie_sort.dart';
 import 'package:movielog/movie_log_app.dart';
+import 'package:movielog/movies/movie_sort_menu.dart';
 import 'package:movielog/router/app_router.dart';
+import 'package:movielog/services/movie_preference.dart';
 import 'package:movielog/widgets/movie_rating_input.dart';
 
 Future<void> _pumpAppAt(WidgetTester tester, String location) async {
@@ -14,9 +20,16 @@ Future<void> _pumpAppAt(WidgetTester tester, String location) async {
   AppRouter.router.go(location);
   await tester.pumpWidget(const MovieLogApp());
   await tester.pumpAndSettle();
+  await tester.pump(const Duration(seconds: 1));
+  await tester.pumpAndSettle();
 }
 
 void main() {
+  setUp(() {
+    SharedPreferencesAsyncPlatform.instance =
+        InMemorySharedPreferencesAsync.empty();
+  });
+
   testWidgets('시작 → 회원가입 → 홈으로 이동하고 뒤로 가기가 막혀 있다', (tester) async {
     await _pumpAppAt(tester, '/start');
 
@@ -89,51 +102,51 @@ void main() {
     expect(find.byType(GridView), findsOneWidget);
   });
 
-  testWidgets('필터 BottomSheet에서 확인을 눌러야 장르가 적용된다', (tester) async {
+  testWidgets('장르 Chip을 누르면 목록이 갱신되고 선택 장르가 저장된다', (tester) async {
     await _pumpAppAt(tester, '/movies');
 
-    await tester.tap(find.byTooltip('장르 필터'));
-    await tester.pumpAndSettle();
-    expect(find.byType(DraggableScrollableSheet), findsOneWidget);
-
-    await tester.tap(find.widgetWithText(CheckboxListTile, 'SF'));
-    await tester.tap(find.widgetWithText(CheckboxListTile, '스릴러'));
-    await tester.pump();
-    expect(find.text('별빛 아래 우리'), findsOneWidget);
-
-    await tester.tap(find.widgetWithText(ElevatedButton, '확인'));
+    await tester.tap(find.widgetWithText(ChoiceChip, 'SF'));
     await tester.pumpAndSettle();
 
-    expect(find.byType(BottomSheet), findsNothing);
     expect(find.text('우주의 끝에서'), findsOneWidget);
-    expect(find.text('밤의 그림자'), findsOneWidget);
     expect(find.text('별빛 아래 우리'), findsNothing);
     expect(
-      AppRouter
-          .router
-          .routeInformationProvider
-          .value
-          .uri
-          .queryParameters['genres'],
-      'SF,스릴러',
+      await SharedPreferencesAsync().getString(
+        MoviePreference.selectedGenreKey,
+      ),
+      'SF',
+    );
+
+    await tester.tap(find.widgetWithText(ChoiceChip, '전체'));
+    await tester.pumpAndSettle();
+    expect(find.text('별빛 아래 우리'), findsOneWidget);
+  });
+
+  testWidgets('저장된 장르와 정렬 방식이 앱 재실행 후 복원된다', (tester) async {
+    SharedPreferencesAsyncPlatform.instance =
+        InMemorySharedPreferencesAsync.withData({
+          MoviePreference.selectedGenreKey: 'SF',
+          MoviePreference.selectedSortKey: 'rating',
+        });
+
+    await _pumpAppAt(tester, '/movies');
+
+    expect(
+      tester.widget<ChoiceChip>(find.widgetWithText(ChoiceChip, 'SF')).selected,
+      isTrue,
+    );
+    expect(find.text('우주의 끝에서'), findsOneWidget);
+    expect(find.text('별빛 아래 우리'), findsNothing);
+    expect(
+      tester.widget<MovieSortMenu>(find.byType(MovieSortMenu)).selected,
+      MovieSort.rating,
     );
   });
 
-  testWidgets('선택 없이 확인하면 전체 영화 목록이 보인다', (tester) async {
-    await _pumpAppAt(tester, '/movies?genres=SF');
-    expect(find.text('별빛 아래 우리'), findsNothing);
-
-    await tester.tap(find.byTooltip('장르 필터'));
+  testWidgets('탭을 바꿨다 돌아와도 영화 탭의 장르 상태가 유지된다', (tester) async {
+    await _pumpAppAt(tester, '/movies');
+    await tester.tap(find.widgetWithText(ChoiceChip, 'SF'));
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(CheckboxListTile, 'SF'));
-    await tester.tap(find.widgetWithText(ElevatedButton, '확인'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('별빛 아래 우리'), findsOneWidget);
-  });
-
-  testWidgets('탭을 바꿨다 돌아와도 영화 탭의 필터 상태가 유지된다', (tester) async {
-    await _pumpAppAt(tester, '/movies?genres=SF');
 
     await tester.tap(find.text('홈'));
     await tester.pumpAndSettle();
