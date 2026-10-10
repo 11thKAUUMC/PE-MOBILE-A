@@ -5,7 +5,7 @@ import '../models/movie.dart';
 import '../services/fake_movie_service.dart';
 import '../services/genre_preference.dart';
 import '../theme/app_colors.dart';
-import '../widgets/movie_card.dart';
+import '../widgets/movie_grid.dart';
 import '../widgets/movie_list_loading.dart';
 import '../widgets/movie_list_empty.dart';
 import '../widgets/movie_list_error.dart';
@@ -187,19 +187,7 @@ class _MovieListScreenState extends State<MovieListScreen> {
                     return const MovieListEmpty();
                   }
 
-                  return GridView.builder(
-                    itemCount: filteredMovies.length,
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          crossAxisSpacing: 12,
-                          mainAxisSpacing: 16,
-                          childAspectRatio: 0.54,
-                        ),
-                    itemBuilder: (context, index) {
-                      return MovieCard(movie: filteredMovies[index]);
-                    },
-                  );
+                  return MovieGrid(movies: filteredMovies);
                 },
               ),
             ),
