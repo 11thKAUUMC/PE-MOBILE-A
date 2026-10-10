@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../models/movie.dart';
@@ -5,6 +6,8 @@ import '../services/fake_movie_service.dart';
 import '../theme/app_colors.dart';
 import '../widgets/movie_card.dart';
 import '../widgets/movie_list_loading.dart';
+import '../widgets/movie_list_empty.dart';
+import '../widgets/movie_list_error.dart';
 
 class MovieListScreen extends StatefulWidget {
   const MovieListScreen({super.key});
@@ -16,12 +19,22 @@ class MovieListScreen extends StatefulWidget {
 class _MovieListScreenState extends State<MovieListScreen> {
   String selectedGenre = '전체';
   final movieService = const FakeMovieService();
-  late final Future<List<Movie>> _moviesFuture;
+  late Future<List<Movie>> _moviesFuture;
 
   @override
   void initState() {
     super.initState();
     _moviesFuture = movieService.fetchMovies();
+  }
+
+  void _loadMovies(MovieLoadMode mode) {
+    setState(() {
+      _moviesFuture = movieService.fetchMovies(mode: mode);
+    });
+  }
+
+  void _retry() {
+    _loadMovies(MovieLoadMode.success);
   }
 
   @override
@@ -40,6 +53,26 @@ class _MovieListScreenState extends State<MovieListScreen> {
           ),
         ),
         actions: [
+          if (kDebugMode)
+            PopupMenuButton<MovieLoadMode>(
+              tooltip: '스터디 상태 확인',
+              icon: const Icon(Icons.science_outlined, color: AppColors.violet),
+              onSelected: _loadMovies,
+              itemBuilder: (context) => const [
+                PopupMenuItem(
+                  value: MovieLoadMode.success,
+                  child: Text('Success 확인'),
+                ),
+                PopupMenuItem(
+                  value: MovieLoadMode.empty,
+                  child: Text('Empty 확인'),
+                ),
+                PopupMenuItem(
+                  value: MovieLoadMode.failure,
+                  child: Text('Error 확인'),
+                ),
+              ],
+            ),
           IconButton(
             onPressed: () {},
             icon: const Icon(Icons.search, color: AppColors.violet),
@@ -92,12 +125,20 @@ class _MovieListScreenState extends State<MovieListScreen> {
                     return const MovieListLoading();
                   }
 
+                  if (snapshot.hasError) {
+                    return MovieListError(onRetry: _retry);
+                  }
+
                   final loadedMovies = snapshot.data ?? const <Movie>[];
                   final filteredMovies = selectedGenre == '전체'
                       ? loadedMovies
                       : loadedMovies
                           .where((movie) => movie.genre == selectedGenre)
                           .toList();
+
+                  if (filteredMovies.isEmpty) {
+                    return const MovieListEmpty();
+                  }
 
                   return GridView.builder(
                     itemCount: filteredMovies.length,
