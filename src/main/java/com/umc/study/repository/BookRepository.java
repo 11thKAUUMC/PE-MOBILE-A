@@ -23,6 +23,13 @@ public class BookRepository {
         return jdbcTemplate.queryForList(sql);
     }
 
+    // 미션 1. 특정 카테고리 도서 목록 조회 API 구현
+    public List<Map<String, Object>> findByCategoryId(Long categoryId) {
+        String sql = "SELECT * FROM book WHERE category_id = ?";
+
+        return jdbcTemplate.queryForList(sql, categoryId);
+    }
+
     public void save(Map<String, Object> body){
         // book_id는 AUTO_INCREMENT이므로 생략, is_available은 기본 true로 삽입
         String sql = "INSERT INTO book (category_id, title, description, is_available) VALUES (?, ?, ?, true)";
@@ -35,4 +42,7 @@ public class BookRepository {
                 body.get("description")
         );
     }
+
+    // 미션 2. 신규 도서 대여 기록 생성 API
+
 }

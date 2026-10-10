@@ -20,8 +20,14 @@ public class BookService {
         return bookRepository.findAll();
     }
 
+    // 미션 1. 특정 카테고리 도서 목록 조회 API
+    public List<Map<String, Object>> getBooksByCategory(Long categoryId) {
+        return bookRepository.findByCategoryId(categoryId);
+    }
     // BookService.java에 추가
     public void createBook(Map<String, Object> body){
         bookRepository.save(body);
     }
+
+
 }

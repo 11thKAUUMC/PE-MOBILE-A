@@ -22,6 +22,12 @@ public class BookController {
         return bookService.getAllBooks();
     }
 
+    // 미션 1. 특정 카테고리 도서 목록 조회 API
+    @GetMapping("/category/{categoryId}")
+    public List<Map<String, Object>> getBooksByCategory(@PathVariable Long categoryId) {
+        return bookService.getBooksByCategory(categoryId);
+    }
+
     // POST http://localhost:8080/books
     @PostMapping
     public String createBook(@RequestBody Map<String, Object> body){
