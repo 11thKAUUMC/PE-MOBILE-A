@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../models/movie.dart';
 import '../services/fake_movie_service.dart';
+import '../services/genre_preference.dart';
 import '../theme/app_colors.dart';
 import '../widgets/movie_card.dart';
 import '../widgets/movie_list_loading.dart';
@@ -17,14 +18,64 @@ class MovieListScreen extends StatefulWidget {
 }
 
 class _MovieListScreenState extends State<MovieListScreen> {
+  static const genres = ['전체', '드라마', '미스터리', 'SF', '액션', '로맨스', '스릴러'];
   String selectedGenre = '전체';
   final movieService = const FakeMovieService();
+  final genrePreference = GenrePreference();
+  bool _restoringGenre = true;
+  bool _savingGenre = false;
   late Future<List<Movie>> _moviesFuture;
 
   @override
   void initState() {
     super.initState();
-    _moviesFuture = movieService.fetchMovies();
+    _moviesFuture = _loadInitialMovies();
+  }
+
+  Future<String> _readGenre() async {
+    try {
+      return await genrePreference.read();
+    } catch (error) {
+      debugPrint('장르 복원 실패: $error');
+      return '전체';
+    }
+  }
+
+  Future<List<Movie>> _loadInitialMovies() async {
+    final results = await Future.wait<Object>([
+      movieService.fetchMovies(),
+      _readGenre(),
+    ]);
+    if (!mounted) return results[0] as List<Movie>;
+
+    final savedGenre = results[1] as String;
+    setState(() {
+      selectedGenre = genres.contains(savedGenre) ? savedGenre : '전체';
+      _restoringGenre = false;
+    });
+    return results[0] as List<Movie>;
+  }
+
+  Future<void> _selectGenre(String genre) async {
+    setState(() {
+      selectedGenre = genre;
+      _savingGenre = true;
+    });
+    try {
+      await genrePreference.save(genre);
+    } catch (error) {
+      debugPrint('장르 저장 실패: $error');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('장르 설정을 저장하지 못했습니다. 다시 선택해 주세요.')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _savingGenre = false;
+        });
+      }
+    }
   }
 
   void _loadMovies(MovieLoadMode mode) {
@@ -39,8 +90,6 @@ class _MovieListScreenState extends State<MovieListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    const genres = ['전체', '드라마', '미스터리', 'SF', '액션', '로맨스', '스릴러'];
-
     return Scaffold(
       appBar: AppBar(
         centerTitle: false,
@@ -57,7 +106,7 @@ class _MovieListScreenState extends State<MovieListScreen> {
             PopupMenuButton<MovieLoadMode>(
               tooltip: '스터디 상태 확인',
               icon: const Icon(Icons.science_outlined, color: AppColors.violet),
-              onSelected: _loadMovies,
+              onSelected: _restoringGenre ? null : _loadMovies,
               itemBuilder: (context) => const [
                 PopupMenuItem(
                   value: MovieLoadMode.success,
@@ -107,11 +156,9 @@ class _MovieListScreenState extends State<MovieListScreen> {
                       fontWeight: FontWeight.w700,
                     ),
                     shape: const StadiumBorder(side: BorderSide.none),
-                    onSelected: (_) {
-                      setState(() {
-                        selectedGenre = genre;
-                      });
-                    },
+                    onSelected: _restoringGenre || _savingGenre
+                        ? null
+                        : (_) => _selectGenre(genre),
                   );
                 },
               ),
@@ -133,8 +180,8 @@ class _MovieListScreenState extends State<MovieListScreen> {
                   final filteredMovies = selectedGenre == '전체'
                       ? loadedMovies
                       : loadedMovies
-                          .where((movie) => movie.genre == selectedGenre)
-                          .toList();
+                            .where((movie) => movie.genre == selectedGenre)
+                            .toList();
 
                   if (filteredMovies.isEmpty) {
                     return const MovieListEmpty();
