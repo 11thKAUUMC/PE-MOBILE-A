@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
@@ -27,6 +29,14 @@ class _MovieListScreenState extends State<MovieListScreen> {
   bool _refreshing = false;
   late Future<List<Movie>> _moviesFuture;
 
+  Future<List<Movie>> _fetchMovies({
+    MovieLoadMode mode = MovieLoadMode.success,
+  }) {
+    return movieService
+        .fetchMovies(mode: mode)
+        .timeout(const Duration(seconds: 3));
+  }
+
   @override
   void initState() {
     super.initState();
@@ -43,10 +53,7 @@ class _MovieListScreenState extends State<MovieListScreen> {
   }
 
   Future<List<Movie>> _loadInitialMovies() async {
-    final results = await Future.wait<Object>([
-      movieService.fetchMovies(),
-      _readGenre(),
-    ]);
+    final results = await Future.wait<Object>([_fetchMovies(), _readGenre()]);
     if (!mounted) return results[0] as List<Movie>;
 
     final savedGenre = results[1] as String;
@@ -81,7 +88,7 @@ class _MovieListScreenState extends State<MovieListScreen> {
 
   void _loadMovies(MovieLoadMode mode) {
     setState(() {
-      _moviesFuture = movieService.fetchMovies(mode: mode);
+      _moviesFuture = _fetchMovies(mode: mode);
     });
   }
 
@@ -91,7 +98,7 @@ class _MovieListScreenState extends State<MovieListScreen> {
 
   Future<void> _refresh() async {
     if (_refreshing) return;
-    final future = movieService.fetchMovies();
+    final future = _fetchMovies();
     setState(() {
       _refreshing = true;
       _moviesFuture = future;
@@ -141,6 +148,10 @@ class _MovieListScreenState extends State<MovieListScreen> {
                 PopupMenuItem(
                   value: MovieLoadMode.failure,
                   child: Text('Error 확인'),
+                ),
+                PopupMenuItem(
+                  value: MovieLoadMode.timeout,
+                  child: Text('Timeout 확인 (3초)'),
                 ),
               ],
             ),
@@ -196,7 +207,10 @@ class _MovieListScreenState extends State<MovieListScreen> {
                   }
 
                   if (snapshot.hasError) {
-                    return MovieListError(onRetry: _retry);
+                    return MovieListError(
+                      onRetry: _retry,
+                      isTimeout: snapshot.error is TimeoutException,
+                    );
                   }
 
                   final loadedMovies = snapshot.data ?? const <Movie>[];
