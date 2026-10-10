@@ -11,6 +11,7 @@ class MovieGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GridView.builder(
+      physics: const AlwaysScrollableScrollPhysics(),
       itemCount: movies.length,
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,

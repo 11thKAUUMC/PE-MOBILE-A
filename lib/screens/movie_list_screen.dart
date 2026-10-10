@@ -24,6 +24,7 @@ class _MovieListScreenState extends State<MovieListScreen> {
   final genrePreference = GenrePreference();
   bool _restoringGenre = true;
   bool _savingGenre = false;
+  bool _refreshing = false;
   late Future<List<Movie>> _moviesFuture;
 
   @override
@@ -86,6 +87,27 @@ class _MovieListScreenState extends State<MovieListScreen> {
 
   void _retry() {
     _loadMovies(MovieLoadMode.success);
+  }
+
+  Future<void> _refresh() async {
+    if (_refreshing) return;
+    final future = movieService.fetchMovies();
+    setState(() {
+      _refreshing = true;
+      _moviesFuture = future;
+    });
+    try {
+      await future;
+    } catch (error) {
+      // FutureBuilder가 오류 화면을 표시합니다.
+      debugPrint('새로고침 실패: $error');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _refreshing = false;
+        });
+      }
+    }
   }
 
   @override
@@ -168,7 +190,8 @@ class _MovieListScreenState extends State<MovieListScreen> {
               child: FutureBuilder<List<Movie>>(
                 future: _moviesFuture,
                 builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
+                  if (snapshot.connectionState == ConnectionState.waiting &&
+                      !_refreshing) {
                     return const MovieListLoading();
                   }
 
@@ -183,11 +206,12 @@ class _MovieListScreenState extends State<MovieListScreen> {
                             .where((movie) => movie.genre == selectedGenre)
                             .toList();
 
-                  if (filteredMovies.isEmpty) {
-                    return const MovieListEmpty();
-                  }
-
-                  return MovieGrid(movies: filteredMovies);
+                  return RefreshIndicator(
+                    onRefresh: _refresh,
+                    child: filteredMovies.isEmpty
+                        ? const MovieListEmpty()
+                        : MovieGrid(movies: filteredMovies),
+                  );
                 },
               ),
             ),
