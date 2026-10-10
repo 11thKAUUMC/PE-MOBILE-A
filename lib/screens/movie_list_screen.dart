@@ -4,8 +4,10 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../models/movie.dart';
+import '../models/movie_sort.dart';
 import '../services/fake_movie_service.dart';
 import '../services/genre_preference.dart';
+import '../services/sort_preference.dart';
 import '../theme/app_colors.dart';
 import '../widgets/movie_grid.dart';
 import '../widgets/movie_list_loading.dart';
@@ -24,6 +26,9 @@ class _MovieListScreenState extends State<MovieListScreen> {
   String selectedGenre = '전체';
   final movieService = const FakeMovieService();
   final genrePreference = GenrePreference();
+  final sortPreference = SortPreference();
+  MovieSort selectedSort = MovieSort.original;
+  bool _savingSort = false;
   bool _restoringGenre = true;
   bool _savingGenre = false;
   bool _refreshing = false;
@@ -53,15 +58,51 @@ class _MovieListScreenState extends State<MovieListScreen> {
   }
 
   Future<List<Movie>> _loadInitialMovies() async {
-    final results = await Future.wait<Object>([_fetchMovies(), _readGenre()]);
+    final results = await Future.wait<Object>([
+      _fetchMovies(),
+      _readGenre(),
+      _readSort(),
+    ]);
     if (!mounted) return results[0] as List<Movie>;
 
     final savedGenre = results[1] as String;
     setState(() {
       selectedGenre = genres.contains(savedGenre) ? savedGenre : '전체';
+      selectedSort = results[2] as MovieSort;
       _restoringGenre = false;
     });
     return results[0] as List<Movie>;
+  }
+
+  Future<MovieSort> _readSort() async {
+    try {
+      return await sortPreference.read();
+    } catch (error) {
+      debugPrint('정렬 복원 실패: $error');
+      return MovieSort.original;
+    }
+  }
+
+  Future<void> _selectSort(MovieSort sort) async {
+    setState(() {
+      selectedSort = sort;
+      _savingSort = true;
+    });
+    try {
+      await sortPreference.save(sort);
+    } catch (error) {
+      debugPrint('정렬 저장 실패: $error');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('정렬 설정을 저장하지 못했습니다. 다시 선택해 주세요.')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _savingSort = false;
+        });
+      }
+    }
   }
 
   Future<void> _selectGenre(String genre) async {
@@ -196,7 +237,23 @@ class _MovieListScreenState extends State<MovieListScreen> {
                 },
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerRight,
+              child: DropdownButton<MovieSort>(
+                value: selectedSort,
+                underline: const SizedBox.shrink(),
+                items: MovieSort.values.map((sort) {
+                  return DropdownMenuItem(value: sort, child: Text(sort.label));
+                }).toList(),
+                onChanged: _restoringGenre || _savingSort
+                    ? null
+                    : (sort) {
+                        if (sort != null) _selectSort(sort);
+                      },
+              ),
+            ),
+            const SizedBox(height: 8),
             Expanded(
               child: FutureBuilder<List<Movie>>(
                 future: _moviesFuture,
@@ -220,11 +277,23 @@ class _MovieListScreenState extends State<MovieListScreen> {
                             .where((movie) => movie.genre == selectedGenre)
                             .toList();
 
+                  final sortedMovies = List<Movie>.of(filteredMovies);
+                  if (selectedSort != MovieSort.original) {
+                    sortedMovies.sort((a, b) {
+                      final comparison = selectedSort == MovieSort.rating
+                          ? b.averageRating.compareTo(a.averageRating)
+                          : b.year.compareTo(a.year);
+                      return comparison != 0
+                          ? comparison
+                          : a.id.compareTo(b.id);
+                    });
+                  }
+
                   return RefreshIndicator(
                     onRefresh: _refresh,
                     child: filteredMovies.isEmpty
                         ? const MovieListEmpty()
-                        : MovieGrid(movies: filteredMovies),
+                        : MovieGrid(movies: sortedMovies),
                   );
                 },
               ),
