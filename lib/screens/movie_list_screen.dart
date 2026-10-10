@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
-import '../data/mock_movies.dart';
+import '../models/movie.dart';
+import '../services/fake_movie_service.dart';
 import '../theme/app_colors.dart';
 import '../widgets/movie_card.dart';
+import '../widgets/movie_list_loading.dart';
 
 class MovieListScreen extends StatefulWidget {
   const MovieListScreen({super.key});
@@ -13,16 +15,18 @@ class MovieListScreen extends StatefulWidget {
 
 class _MovieListScreenState extends State<MovieListScreen> {
   String selectedGenre = '전체';
+  final movieService = const FakeMovieService();
+  late final Future<List<Movie>> _moviesFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _moviesFuture = movieService.fetchMovies();
+  }
 
   @override
   Widget build(BuildContext context) {
     const genres = ['전체', '드라마', '미스터리', 'SF', '액션', '로맨스', '스릴러'];
-
-    final filteredMovies = selectedGenre == '전체'
-        ? movies
-        : movies.where((movie) {
-            return movie.genre == selectedGenre;
-          }).toList();
 
     return Scaffold(
       appBar: AppBar(
@@ -81,16 +85,33 @@ class _MovieListScreenState extends State<MovieListScreen> {
             ),
             const SizedBox(height: 24),
             Expanded(
-              child: GridView.builder(
-                itemCount: filteredMovies.length,
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 12,
-                  mainAxisSpacing: 16,
-                  childAspectRatio: 0.54,
-                ),
-                itemBuilder: (context, index) {
-                  return MovieCard(movie: filteredMovies[index]);
+              child: FutureBuilder<List<Movie>>(
+                future: _moviesFuture,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const MovieListLoading();
+                  }
+
+                  final loadedMovies = snapshot.data ?? const <Movie>[];
+                  final filteredMovies = selectedGenre == '전체'
+                      ? loadedMovies
+                      : loadedMovies
+                          .where((movie) => movie.genre == selectedGenre)
+                          .toList();
+
+                  return GridView.builder(
+                    itemCount: filteredMovies.length,
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          crossAxisSpacing: 12,
+                          mainAxisSpacing: 16,
+                          childAspectRatio: 0.54,
+                        ),
+                    itemBuilder: (context, index) {
+                      return MovieCard(movie: filteredMovies[index]);
+                    },
+                  );
                 },
               ),
             ),
