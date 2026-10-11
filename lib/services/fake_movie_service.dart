@@ -18,6 +18,7 @@ class FakeMovieService {
     MovieLoadMode mode = MovieLoadMode.success,
   }) async {
     // 가짜 지연
+    // TODO(5주차 유저별 평점 조회 API): Mock 처리를 실제 API 호출로 교체
     await Future<void>.delayed(const Duration(seconds: 1));
 
     // mode 조건 분기
@@ -31,8 +32,6 @@ class FakeMovieService {
   }
 }
 
-// 스터디 워크북 요구사항: 동일한 Mock Data를 목록과 상세에서 사용[cite: 1]
-// 실제 assets/images/posters/ 이미지 경로 적용
 const List<Movie> mockMovies = [
   Movie(
     id: 1,
@@ -70,7 +69,7 @@ const List<Movie> mockMovies = [
   Movie(
     id: 4,
     title: '밤의 그림자',
-    genre: '스릴러',
+    genre: '드라마',
     year: 2024,
     posterAsset: 'assets/images/posters/poster_night_shadows.jpg',
     rating: 3.8,
