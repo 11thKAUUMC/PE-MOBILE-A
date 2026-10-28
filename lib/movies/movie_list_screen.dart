@@ -1,189 +1,157 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
-import '../data/mock_movies.dart';
-import '../models/movie.dart';
-import '../models/movie_sort.dart';
-import '../services/fake_movie_service.dart';
-import '../services/movie_preference.dart';
+import '../view_models/movie_list_view_model.dart';
 import '../widgets/common_app_bar.dart';
 import 'genre_chips.dart';
+import 'genre_filter_sheet.dart';
 import 'movie_grid.dart';
 import 'movie_list_empty.dart';
 import 'movie_list_error.dart';
 import 'movie_list_loading.dart';
-import 'movie_sort_menu.dart';
-
-/// 화면 상태 확인용: success / empty / failure / timeout
-const defaultMovieLoadMode = MovieLoadMode.success;
-
-class MovieListInitialData {
-  const MovieListInitialData({
-    required this.movies,
-    required this.selectedGenre,
-    required this.sort,
-  });
-
-  final List<Movie> movies;
-  final String selectedGenre;
-  final MovieSort sort;
-}
+import 'movie_list_retry_dialog.dart';
 
 class MovieListScreen extends StatefulWidget {
-  const MovieListScreen({
-    super.key,
-    this.loadMode = defaultMovieLoadMode,
-    this.movieService = const FakeMovieService(),
-    this.preference,
-    this.timeout = const Duration(seconds: 3),
-  });
-
-  final MovieLoadMode loadMode;
-  final FakeMovieService movieService;
-  final MoviePreference? preference;
-  final Duration timeout;
+  const MovieListScreen({super.key});
 
   @override
   State<MovieListScreen> createState() => _MovieListScreenState();
 }
 
 class _MovieListScreenState extends State<MovieListScreen> {
-  static final _genres = [MoviePreference.allGenre, ...movieGenres];
-
-  late final MoviePreference _preference =
-      widget.preference ?? MoviePreference();
-  late Future<MovieListInitialData> _initialDataFuture;
-
-  String? _selectedGenre;
-  MovieSort? _sort;
+  MovieListViewModel? _viewModel;
+  var _dialogVisible = false;
 
   @override
-  void initState() {
-    super.initState();
-    _initialDataFuture = _loadInitialData(widget.loadMode);
-  }
-
-  Future<MovieListInitialData> _loadInitialData(MovieLoadMode mode) async {
-    try {
-      final results = await Future.wait<Object>([
-        widget.movieService.fetchMovies(mode: mode).timeout(widget.timeout),
-        _preference.readGenre(),
-        _preference.readSort(),
-      ]);
-
-      return MovieListInitialData(
-        movies: results[0] as List<Movie>,
-        selectedGenre: results[1] as String,
-        sort: results[2] as MovieSort,
-      );
-    } on Exception catch (error, stackTrace) {
-      debugPrint('영화 목록 로드 실패: $error');
-      debugPrintStack(stackTrace: stackTrace);
-      rethrow;
-    } finally {
-      debugPrint('영화 목록 로드 시도 종료');
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final viewModel = context.read<MovieListViewModel>();
+    if (!identical(_viewModel, viewModel)) {
+      _viewModel?.removeListener(_onViewModelChanged);
+      _viewModel = viewModel;
+      _viewModel?.addListener(_onViewModelChanged);
     }
   }
 
-  void _retry() {
-    setState(() {
-      _initialDataFuture = _loadInitialData(MovieLoadMode.success);
-    });
+  @override
+  void dispose() {
+    _viewModel?.removeListener(_onViewModelChanged);
+    super.dispose();
   }
 
-  Future<void> _refresh() async {
-    final future = _loadInitialData(MovieLoadMode.success);
-    setState(() {
-      _initialDataFuture = future;
-    });
-
-    try {
-      await future;
-    } on Exception {
+  void _onViewModelChanged() {
+    final viewModel = _viewModel;
+    if (viewModel == null || !viewModel.showRetryDialog || _dialogVisible) {
       return;
     }
+    _showRetryDialog(viewModel);
   }
 
-  Future<void> _selectGenre(String genre) async {
-    setState(() => _selectedGenre = genre);
-    await _preference.saveGenre(genre);
-  }
+  Future<void> _showRetryDialog(MovieListViewModel viewModel) async {
+    _dialogVisible = true;
+    final shouldRetry = await showMovieListRetryDialog(
+      context: context,
+      message:
+          viewModel.message ?? '영화 목록을 불러오지 못했어요.\n최근 목록은 유지됩니다.',
+    );
+    _dialogVisible = false;
+    if (!mounted) return;
 
-  Future<void> _selectSort(MovieSort sort) async {
-    setState(() => _sort = sort);
-    await _preference.saveSort(sort);
+    final current = context.read<MovieListViewModel>();
+    if (shouldRetry == true) {
+      await current.retryLastRequest();
+    } else {
+      current.dismissRetryDialog();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: const CommonAppBar(title: '영화'),
-      body: FutureBuilder<MovieListInitialData>(
-        future: _initialDataFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting &&
-              !snapshot.hasData) {
-            return const MovieListLoading();
-          }
-
-          if (snapshot.hasError) {
-            return MovieListError(
-              onRetry: _retry,
-              message: snapshot.error is TimeoutException
-                  ? MovieListError.timeoutMessage
-                  : MovieListError.defaultMessage,
-            );
-          }
-
-          final data = snapshot.data;
-          if (data == null || data.movies.isEmpty) {
-            return const MovieListEmpty();
-          }
-
-          return _buildContent(data);
-        },
-      ),
+    return Consumer<MovieListViewModel>(
+      builder: (context, viewModel, child) {
+        return Scaffold(
+          appBar: CommonAppBar(
+            title: '영화',
+            actions: [
+              IconButton(
+                tooltip: '장르 다중 선택',
+                onPressed: !viewModel.canChangeGenre
+                    ? null
+                    : () => _openGenreSheet(viewModel),
+                icon: const Icon(Icons.filter_list),
+              ),
+              const SizedBox(width: 8),
+            ],
+          ),
+          body: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (viewModel.genres.isNotEmpty)
+                GenreChips(
+                  genres: viewModel.genres,
+                  selectedGenreIds: viewModel.selectedGenreIds,
+                  enabled: viewModel.canChangeGenre,
+                  onSelected: (genreId) {
+                    context.read<MovieListViewModel>().selectGenre(genreId);
+                  },
+                ),
+              Expanded(child: _buildBody(viewModel)),
+            ],
+          ),
+        );
+      },
     );
   }
 
-  Widget _buildContent(MovieListInitialData data) {
-    final savedGenre = _selectedGenre ?? data.selectedGenre;
-    final genre = _genres.contains(savedGenre)
-        ? savedGenre
-        : MoviePreference.allGenre;
-    final sort = _sort ?? data.sort;
+  Widget _buildBody(MovieListViewModel viewModel) {
+    if (viewModel.isLoading && viewModel.movies.isEmpty) {
+      return const MovieListLoading();
+    }
 
-    final filteredMovies = genre == MoviePreference.allGenre
-        ? data.movies
-        : data.movies.where((movie) => movie.genre == genre).toList();
-    final visibleMovies = sort.apply(filteredMovies);
+    if (viewModel.status == MovieListLoadStatus.error &&
+        viewModel.movies.isEmpty) {
+      return MovieListError(
+        message: viewModel.message ?? MovieListError.defaultMessage,
+        onRetry: () => context.read<MovieListViewModel>().retryLastRequest(),
+      );
+    }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: GenreChips(
-                genres: _genres,
-                selected: genre,
-                onSelected: _selectGenre,
-              ),
-            ),
-            MovieSortMenu(selected: sort, onSelected: _selectSort),
-            const SizedBox(width: 8),
-          ],
-        ),
-        Expanded(
-          child: visibleMovies.isEmpty
-              ? const MovieListEmpty()
-              : RefreshIndicator(
-                  onRefresh: _refresh,
-                  child: MovieGrid(movies: visibleMovies),
-                ),
-        ),
-      ],
+    if (viewModel.status == MovieListLoadStatus.empty &&
+        viewModel.movies.isEmpty) {
+      return const MovieListEmpty();
+    }
+
+    final grid = MovieGrid(movies: viewModel.movies);
+
+    if (viewModel.isLoading) {
+      return Stack(
+        children: [
+          grid,
+          const ColoredBox(
+            color: Color(0x66FFFFFF),
+            child: Center(child: CircularProgressIndicator()),
+          ),
+        ],
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: () => context.read<MovieListViewModel>().refresh(),
+      notificationPredicate: (notification) =>
+          !viewModel.isLoading &&
+          !viewModel.isRefreshing &&
+          notification.depth == 0,
+      child: grid,
     );
+  }
+
+  Future<void> _openGenreSheet(MovieListViewModel viewModel) async {
+    final selected = await showGenreFilterSheet(
+      context: context,
+      genres: viewModel.genres,
+      initiallySelected: viewModel.selectedGenreIds,
+    );
+    if (!mounted || selected == null) return;
+    await context.read<MovieListViewModel>().selectGenres(selected);
   }
 }
