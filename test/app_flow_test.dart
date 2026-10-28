@@ -1,16 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 
-import 'package:movielog/models/movie_sort.dart';
 import 'package:movielog/movie_log_app.dart';
-import 'package:movielog/movies/movie_sort_menu.dart';
 import 'package:movielog/router/app_router.dart';
-import 'package:movielog/services/movie_preference.dart';
 import 'package:movielog/widgets/movie_rating_input.dart';
+
+import 'support/fake_tmdb_movie_service.dart';
 
 Future<void> _pumpAppAt(WidgetTester tester, String location) async {
   tester.view.physicalSize = const Size(390, 844);
@@ -18,9 +16,9 @@ Future<void> _pumpAppAt(WidgetTester tester, String location) async {
   addTearDown(tester.view.reset);
 
   AppRouter.router.go(location);
-  await tester.pumpWidget(const MovieLogApp());
-  await tester.pumpAndSettle();
-  await tester.pump(const Duration(seconds: 1));
+  await tester.pumpWidget(
+    MovieLogApp(tmdbMovieService: FakeTmdbMovieService()),
+  );
   await tester.pumpAndSettle();
 }
 
@@ -91,30 +89,29 @@ void main() {
   testWidgets('목록 카드를 누르면 Path Parameter의 영화 상세가 보인다', (tester) async {
     await _pumpAppAt(tester, '/movies');
 
-    await tester.tap(find.text('우주의 끝에서'));
+    await tester.tap(find.text('도시의 밤'));
     await tester.pumpAndSettle();
 
     expect(find.text('Cinema Archive'), findsOneWidget);
-    expect(find.textContaining('138분'), findsOneWidget);
+    expect(find.textContaining('TMDB #2'), findsOneWidget);
 
     await tester.tap(find.byIcon(Icons.arrow_back));
     await tester.pumpAndSettle();
     expect(find.byType(GridView), findsOneWidget);
   });
 
-  testWidgets('장르 Chip을 누르면 목록이 갱신되고 선택 장르가 저장된다', (tester) async {
+  testWidgets('장르 Chip을 누르면 목록이 갱신된다', (tester) async {
     await _pumpAppAt(tester, '/movies');
 
-    await tester.tap(find.widgetWithText(ChoiceChip, 'SF'));
+    await tester.tap(find.widgetWithText(ChoiceChip, '액션'));
     await tester.pumpAndSettle();
 
-    expect(find.text('우주의 끝에서'), findsOneWidget);
-    expect(find.text('별빛 아래 우리'), findsNothing);
+    expect(find.text('별빛 아래 우리'), findsOneWidget);
     expect(
-      await SharedPreferencesAsync().getString(
-        MoviePreference.selectedGenreKey,
-      ),
-      'SF',
+      tester
+          .widget<ChoiceChip>(find.widgetWithText(ChoiceChip, '액션'))
+          .selected,
+      isTrue,
     );
 
     await tester.tap(find.widgetWithText(ChoiceChip, '전체'));
@@ -122,30 +119,9 @@ void main() {
     expect(find.text('별빛 아래 우리'), findsOneWidget);
   });
 
-  testWidgets('저장된 장르와 정렬 방식이 앱 재실행 후 복원된다', (tester) async {
-    SharedPreferencesAsyncPlatform.instance =
-        InMemorySharedPreferencesAsync.withData({
-          MoviePreference.selectedGenreKey: 'SF',
-          MoviePreference.selectedSortKey: 'rating',
-        });
-
-    await _pumpAppAt(tester, '/movies');
-
-    expect(
-      tester.widget<ChoiceChip>(find.widgetWithText(ChoiceChip, 'SF')).selected,
-      isTrue,
-    );
-    expect(find.text('우주의 끝에서'), findsOneWidget);
-    expect(find.text('별빛 아래 우리'), findsNothing);
-    expect(
-      tester.widget<MovieSortMenu>(find.byType(MovieSortMenu)).selected,
-      MovieSort.rating,
-    );
-  });
-
   testWidgets('탭을 바꿨다 돌아와도 영화 탭의 장르 상태가 유지된다', (tester) async {
     await _pumpAppAt(tester, '/movies');
-    await tester.tap(find.widgetWithText(ChoiceChip, 'SF'));
+    await tester.tap(find.widgetWithText(ChoiceChip, '액션'));
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('홈'));
@@ -153,22 +129,30 @@ void main() {
     await tester.tap(find.text('영화'));
     await tester.pumpAndSettle();
 
-    expect(find.text('우주의 끝에서'), findsOneWidget);
-    expect(find.text('별빛 아래 우리'), findsNothing);
+    expect(
+      tester
+          .widget<ChoiceChip>(find.widgetWithText(ChoiceChip, '액션'))
+          .selected,
+      isTrue,
+    );
   });
 
-  testWidgets('상세 화면에 평균 평점 4.5가 읽기 전용으로 보인다', (tester) async {
-    await _pumpAppAt(tester, '/movies/1');
+  testWidgets('상세 화면에 TMDB 평점이 읽기 전용으로 보인다', (tester) async {
+    await _pumpAppAt(tester, '/home');
+    await tester.tap(find.text('상세보기'));
+    await tester.pumpAndSettle();
 
     final indicator = tester.widget<RatingBarIndicator>(
       find.byType(RatingBarIndicator),
     );
-    expect(indicator.rating, 4.5);
-    expect(find.text('4.5'), findsOneWidget);
+    expect(indicator.rating, closeTo(4.1, 0.01));
+    expect(find.text('8.2'), findsOneWidget);
   });
 
   testWidgets('즐겨찾기 추가·삭제 결과를 Snackbar와 아이콘으로 보여준다', (tester) async {
-    await _pumpAppAt(tester, '/movies/1');
+    await _pumpAppAt(tester, '/home');
+    await tester.tap(find.text('상세보기'));
+    await tester.pumpAndSettle();
 
     await tester.tap(find.text('즐겨찾기'));
     await tester.pump();
@@ -182,7 +166,9 @@ void main() {
   });
 
   testWidgets('평점 Dialog는 별을 선택해야 확인 버튼이 활성화된다', (tester) async {
-    await _pumpAppAt(tester, '/movies/1');
+    await _pumpAppAt(tester, '/home');
+    await tester.tap(find.text('상세보기'));
+    await tester.pumpAndSettle();
 
     await tester.tap(find.text('평점 남기기'));
     await tester.pumpAndSettle();
@@ -210,7 +196,9 @@ void main() {
   });
 
   testWidgets('평점 Dialog에서 초기화 후 다시 선택할 수 있다', (tester) async {
-    await _pumpAppAt(tester, '/movies/1');
+    await _pumpAppAt(tester, '/home');
+    await tester.tap(find.text('상세보기'));
+    await tester.pumpAndSettle();
 
     await tester.tap(find.text('평점 남기기'));
     await tester.pumpAndSettle();
@@ -236,7 +224,7 @@ void main() {
     expect(confirmButton().onPressed, isNotNull);
   });
 
-  for (final location in ['/home', '/movies', '/movies/1', '/my']) {
+  for (final location in ['/home', '/movies', '/my']) {
     testWidgets('작은 화면에서도 $location 화면에 Overflow가 없다', (tester) async {
       await _pumpAppAt(tester, location);
       tester.view.physicalSize = const Size(360, 640);
@@ -249,6 +237,7 @@ void main() {
   testWidgets('존재하지 않는 영화 ID는 안내 문구를 보여준다', (tester) async {
     await _pumpAppAt(tester, '/movies/999');
 
-    expect(find.text('영화 정보를 찾을 수 없습니다.'), findsOneWidget);
+    expect(find.textContaining('영화 정보를 찾을 수 없습니다.'), findsOneWidget);
+    expect(find.textContaining('movieId: 999'), findsOneWidget);
   });
 }

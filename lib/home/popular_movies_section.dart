@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import '../models/movie.dart';
+import '../data/models/tmdb_movie_dto.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
 import '../widgets/movie_card.dart';
@@ -12,7 +12,7 @@ class PopularMoviesSection extends StatelessWidget {
   static const _cardWidth = 140.0;
   static const _listHeight = _cardWidth / MovieCard.posterAspectRatio + 64;
 
-  final List<Movie> movies;
+  final List<TmdbMovieDto> movies;
 
   @override
   Widget build(BuildContext context) {

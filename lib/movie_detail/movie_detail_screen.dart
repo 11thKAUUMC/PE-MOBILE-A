@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import '../data/mock_movies.dart';
-import '../models/movie.dart';
+import '../data/models/tmdb_movie_dto.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
 import '../widgets/common_app_bar.dart';
@@ -13,9 +12,14 @@ import 'movie_detail_info.dart';
 import 'movie_synopsis.dart';
 
 class MovieDetailScreen extends StatefulWidget {
-  const MovieDetailScreen({super.key, required this.movieId});
+  const MovieDetailScreen({
+    super.key,
+    required this.movieId,
+    this.movie,
+  });
 
   final String movieId;
+  final TmdbMovieDto? movie;
 
   @override
   State<MovieDetailScreen> createState() => _MovieDetailScreenState();
@@ -54,12 +58,17 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
     if (rating == null || !mounted) return;
 
     setState(() => _myRating = rating);
-    _showSnackBar('${rating.toStringAsFixed(1)}점으로 평점을 남겼습니다.');
+    // 이후 자체 API 연동 시 CreateRatingRequest.movieId 로 전달할 TMDB id
+    _showSnackBar(
+      'movieId=${widget.movieId} · ${rating.toStringAsFixed(1)}점으로 평점을 남겼습니다.',
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final movie = findMovieById(int.tryParse(widget.movieId));
+    final movie = widget.movie;
+    final matchesId =
+        movie != null && movie.id.toString() == widget.movieId;
 
     return Scaffold(
       appBar: CommonAppBar(
@@ -71,8 +80,10 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
         ),
         onBack: _goBack,
       ),
-      body: movie == null ? const _MovieNotFound() : _MovieDetailBody(movie),
-      bottomNavigationBar: movie == null
+      body: movie == null || !matchesId
+          ? _MovieNotFound(movieId: widget.movieId)
+          : _MovieDetailBody(movie),
+      bottomNavigationBar: movie == null || !matchesId
           ? null
           : MovieDetailActions(
               isFavorite: _isFavorite,
@@ -87,18 +98,22 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
 class _MovieDetailBody extends StatelessWidget {
   const _MovieDetailBody(this.movie);
 
-  final Movie movie;
+  final TmdbMovieDto movie;
 
   @override
   Widget build(BuildContext context) {
+    final overview = movie.overview.trim().isEmpty
+        ? '줄거리 정보가 없어요.'
+        : movie.overview;
+
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          MovieDetailHeader(posterAsset: movie.posterAsset),
+          MovieDetailHeader(posterPath: movie.posterPath),
           MovieDetailInfo(movie: movie),
           const Divider(height: 1, color: AppColors.outline),
-          MovieSynopsis(synopsis: movie.synopsis),
+          MovieSynopsis(synopsis: overview),
         ],
       ),
     );
@@ -106,12 +121,18 @@ class _MovieDetailBody extends StatelessWidget {
 }
 
 class _MovieNotFound extends StatelessWidget {
-  const _MovieNotFound();
+  const _MovieNotFound({required this.movieId});
+
+  final String movieId;
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
-      child: Text('영화 정보를 찾을 수 없습니다.', style: AppTextStyles.bodyMedium),
+    return Center(
+      child: Text(
+        '영화 정보를 찾을 수 없습니다.\n(movieId: $movieId)',
+        style: AppTextStyles.bodyMedium,
+        textAlign: TextAlign.center,
+      ),
     );
   }
 }

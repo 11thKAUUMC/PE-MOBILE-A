@@ -1,20 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import '../models/movie.dart';
+import '../data/models/tmdb_movie_dto.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
+import '../widgets/tmdb_poster_image.dart';
 
 class FeaturedMovieCard extends StatelessWidget {
   const FeaturedMovieCard({super.key, required this.movie});
 
-  final Movie movie;
+  final TmdbMovieDto movie;
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: () => context.push('/movies/${movie.id}'),
+      onTap: () => context.push('/movies/${movie.id}', extra: movie),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(24),
         child: AspectRatio(
@@ -22,7 +23,15 @@ class FeaturedMovieCard extends StatelessWidget {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              Image.asset(movie.posterAsset, fit: BoxFit.cover),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  return TmdbPosterImage(
+                    posterPath: movie.posterPath,
+                    width: constraints.maxWidth,
+                    height: constraints.maxHeight,
+                  );
+                },
+              ),
               DecoratedBox(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
@@ -53,10 +62,15 @@ class FeaturedMovieCard extends StatelessWidget {
 class _FeaturedMovieContent extends StatelessWidget {
   const _FeaturedMovieContent({required this.movie});
 
-  final Movie movie;
+  final TmdbMovieDto movie;
 
   @override
   Widget build(BuildContext context) {
+    final subtitle = [
+      ?movie.releaseYear,
+      '평점 ${movie.voteAverage.toStringAsFixed(1)}',
+    ].join(' · ');
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -87,7 +101,7 @@ class _FeaturedMovieContent extends StatelessWidget {
         ),
         const SizedBox(height: 4),
         Text(
-          '${movie.tags.take(2).join(' · ')} · ${movie.runtimeMinutes}분',
+          subtitle,
           style: AppTextStyles.bodyMedium.copyWith(
             color: AppColors.white.withValues(alpha: 0.8),
           ),
@@ -96,7 +110,7 @@ class _FeaturedMovieContent extends StatelessWidget {
         SizedBox(
           width: double.infinity,
           child: ElevatedButton.icon(
-            onPressed: () => context.push('/movies/${movie.id}'),
+            onPressed: () => context.push('/movies/${movie.id}', extra: movie),
             style: ElevatedButton.styleFrom(minimumSize: const Size(0, 56)),
             icon: const Icon(Icons.info),
             label: const Text(

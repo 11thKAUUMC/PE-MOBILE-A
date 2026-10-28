@@ -1,22 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import '../models/movie.dart';
+import '../data/models/tmdb_movie_dto.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
+import 'tmdb_poster_image.dart';
 
 class MovieCard extends StatelessWidget {
   const MovieCard({super.key, required this.movie});
 
   static const posterAspectRatio = 0.7;
 
-  final Movie movie;
+  final TmdbMovieDto movie;
 
   @override
   Widget build(BuildContext context) {
+    final year = movie.releaseYear;
+
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: () => context.push('/movies/${movie.id}'),
+      onTap: () => context.push('/movies/${movie.id}', extra: movie),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -27,12 +30,20 @@ class MovieCard extends StatelessWidget {
               children: [
                 ClipRRect(
                   borderRadius: BorderRadius.circular(12),
-                  child: Image.asset(movie.posterAsset, fit: BoxFit.cover),
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      return TmdbPosterImage(
+                        posterPath: movie.posterPath,
+                        width: constraints.maxWidth,
+                        height: constraints.maxHeight,
+                      );
+                    },
+                  ),
                 ),
                 Positioned(
                   top: 8,
                   right: 8,
-                  child: _RatingBadge(rating: movie.rating),
+                  child: _RatingBadge(rating: movie.voteAverage),
                 ),
               ],
             ),
@@ -46,7 +57,7 @@ class MovieCard extends StatelessWidget {
           ),
           const SizedBox(height: 2),
           Text(
-            '${movie.year} · ${movie.genre}',
+            year == null ? 'TMDB #${movie.id}' : '$year · TMDB #${movie.id}',
             style: AppTextStyles.bodySmall,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
@@ -78,7 +89,7 @@ class _RatingBadge extends StatelessWidget {
           Text(
             rating.toStringAsFixed(1),
             style: const TextStyle(
-              fontSize: 13,
+              fontSize: 12,
               fontWeight: FontWeight.w700,
               color: AppColors.white,
             ),

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../models/movie.dart';
+import '../data/models/tmdb_movie_dto.dart';
 import '../widgets/movie_card.dart';
 
 class MovieGrid extends StatelessWidget {
@@ -35,7 +35,7 @@ class MovieGrid extends StatelessWidget {
     );
   }
 
-  final List<Movie> movies;
+  final List<TmdbMovieDto> movies;
 
   @override
   Widget build(BuildContext context) {
