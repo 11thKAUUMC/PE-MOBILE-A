@@ -1,17 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:go_router/go_router.dart';
+import 'package:movielog/data/models/tmdb_movie_dto.dart';
 
-import '../services/fake_movie_service.dart';
+import '../data/models/tmdb_genre_dto.dart';
+import '../widgets/tmdb_poster_image.dart';
+
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
-import '../widget/common_app_bar.dart';
-import '../widget/rating_dialog.dart';
+import '../widgets/common_app_bar.dart';
+import '../widgets/rating_dialog.dart';
 
 class MovieDetailScreen extends StatefulWidget {
-  const MovieDetailScreen({super.key, required this.movieId});
+  const MovieDetailScreen({super.key, required this.movieId, this.movie});
 
   final String? movieId;
+  final TmdbMovieDto? movie;
 
   @override
   State<MovieDetailScreen> createState() => _MovieDetailScreenState();
@@ -23,12 +27,12 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final id = int.tryParse(widget.movieId ?? '');
-    final movie = findMovieById(id);
+    final movie = widget.movie;
 
-    if (movie == null) {
+    if (movie == null || movie.id != id) {
       return Scaffold(
         appBar: CommonAppBar(title: '영화 상세', onBack: () => context.pop()),
-        body: const Center(child: Text('존재하지 않는 영화입니다.')),
+        body: const Center(child: Text('영화 정보를 불러올 수 없어요. 목록에서 다시 선택해 주세요.')),
       );
     }
 
@@ -56,18 +60,14 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
                   SizedBox(
                     width: double.infinity,
                     height: 280, // 원하는 세로 높이에 맞추어 조정
-                    child: Image.asset(
-                      movie.posterAsset,
-                      width: double.infinity,
-                      fit: BoxFit.cover, // 좌우/상하 꽉 차게 채움
-                      errorBuilder: (context, error, stackTrace) => Container(
-                        color: AppColors.darkWhite,
-                        child: const Icon(
-                          Icons.movie,
-                          size: 50,
-                          color: AppColors.gray,
-                        ),
-                      ),
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        return TmdbPosterImage(
+                          posterPath: movie.posterPath,
+                          width: constraints.maxWidth,
+                          height: constraints.maxHeight,
+                        );
+                      },
                     ),
                   ),
 
@@ -80,7 +80,12 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
                         Text(movie.title, style: AppTextStyles.titleLarge),
                         const SizedBox(height: 6),
                         Text(
-                          '${movie.year} · ${movie.genre} · ${movie.runtime}',
+                          [
+                            if (DateTime.tryParse(movie.releaseDate ?? '') !=
+                                null)
+                              '${DateTime.parse(movie.releaseDate!).year}년 개봉',
+                            'TMDB 평점 ${movie.voteAverage.toStringAsFixed(1)} / 10',
+                          ].join(' · '),
                           style: AppTextStyles.bodySmall,
                         ),
                         const SizedBox(height: 12),
@@ -89,7 +94,9 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
                         Row(
                           children: [
                             RatingBarIndicator(
-                              rating: movie.rating > 0 ? movie.rating : 4.5,
+                              rating: (movie.voteAverage / 2)
+                                  .clamp(0.0, 5.0)
+                                  .toDouble(),
                               itemCount: 5,
                               itemSize: 22,
                               itemBuilder: (context, index) => const Icon(
@@ -99,44 +106,12 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              '${movie.rating > 0 ? movie.rating : 4.5}',
+                              '${movie.voteAverage.toStringAsFixed(1)} / 10',
                               style: AppTextStyles.bodyMedium.copyWith(
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                            const SizedBox(width: 4),
-                            Text(
-                              '(${movie.ratingCount})',
-                              style: AppTextStyles.bodySmall,
-                            ),
                           ],
-                        ),
-                        const SizedBox(height: 16),
-
-                        // 4. 태그 칩
-                        Wrap(
-                          spacing: 8,
-                          children: movie.tags.map((tag) {
-                            return Chip(
-                              label: Text(
-                                tag,
-                                style: const TextStyle(
-                                  fontSize: 13,
-                                  color: AppColors.textSecondary,
-                                ),
-                              ),
-                              backgroundColor: AppColors.darkWhite,
-                              elevation: 0,
-                              side: BorderSide.none,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 4,
-                                vertical: 0,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                            );
-                          }).toList(),
                         ),
                         const SizedBox(height: 20),
 
@@ -155,7 +130,9 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
                         ),
                         const SizedBox(height: 12),
                         Text(
-                          movie.description ?? '',
+                          movie.overview.trim().isEmpty
+                              ? '줄거리 정보가 없어요.'
+                              : movie.overview,
                           style: AppTextStyles.bodyMedium.copyWith(
                             height: 1.6,
                             color: AppColors.textPrimary,
@@ -236,19 +213,25 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
                         ),
                       ),
                       onPressed: () async {
-                        final selectedRating = await showDialog<double>(
+                        final result = await showDialog<MovieRatingResult>(
                           context: context,
-                          builder: (dialogContext) => const RatingDialog(),
+                          builder: (_) => RatingDialog(movieId: movie.id),
                         );
 
-                        if (selectedRating != null && mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('$selectedRating점 평점이 등록되었습니다!'),
-                              behavior: SnackBarBehavior.floating,
+                        if (!mounted || result == null) return;
+
+                        debugPrint(
+                          '[평점 선택] movieId=${result.movieId}, score=${result.score}',
+                        );
+
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              '${result.score}점을 선택했습니다. 아직 서버에 저장되지는 않았습니다.',
                             ),
-                          );
-                        }
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
                       },
                       icon: const Icon(Icons.rate_review_outlined, size: 20),
                       label: const Text(

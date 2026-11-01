@@ -9,8 +9,8 @@ class MovieCard extends StatelessWidget {
   const MovieCard({
     super.key,
     required this.movie,
-    this.rank, // 홈 화면 인기 영화의 순위 배지 (1, 2, 3...)
-    this.showBadgeRating = false, // 영화 목록 화면의 우측 상단 평점 배지 (★ 4.8)
+    this.rank,
+    this.showBadgeRating = false,
   });
 
   final Movie movie;
@@ -29,7 +29,6 @@ class MovieCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 1. 포스터 이미지 영역
           Expanded(
             child: Stack(
               children: [
@@ -55,7 +54,7 @@ class MovieCard extends StatelessWidget {
                   ),
                 ),
 
-                // 좌측 상단 순위 배지 (홈 화면 인기 영화용)
+                // 홈 화면 인기 영화 순위 배지
                 if (rank != null)
                   Positioned(
                     top: 8,
@@ -80,7 +79,7 @@ class MovieCard extends StatelessWidget {
                     ),
                   ),
 
-                // 우측 상단 평점 배지 (목표 디자인 2번째 사진용)
+                // 영화 목록 평점 배지
                 if (showBadgeRating)
                   Positioned(
                     top: 8,
@@ -120,7 +119,7 @@ class MovieCard extends StatelessWidget {
           ),
           const SizedBox(height: 8),
 
-          // 2. 영화 제목
+          // 영화 제목
           Text(
             movie.title,
             style: AppTextStyles.bodyMedium.copyWith(
@@ -132,9 +131,7 @@ class MovieCard extends StatelessWidget {
           ),
           const SizedBox(height: 2),
 
-          // 3. 하단 서브 정보
-          // showBadgeRating이 true인 경우 (목록 화면): '년도 · 장르'
-          // false인 경우 (홈 화면): '★ 평점'
+          // 목록: 연도·장르 / 홈: 평점
           if (showBadgeRating)
             Text(
               '${movie.year} · ${movie.genre}',
