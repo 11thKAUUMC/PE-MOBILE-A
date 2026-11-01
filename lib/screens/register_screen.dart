@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:movielog/theme/app_colors.dart';
-import 'package:movielog/widget/common_app_bar.dart';
-import 'package:movielog/widget/signup_input.dart';
+import 'package:movielog/widgets/common_app_bar.dart';
+import 'package:movielog/widgets/signup_input.dart';
 import 'package:go_router/go_router.dart';
 
 class RegisterScreen extends StatefulWidget {

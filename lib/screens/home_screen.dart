@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../services/fake_movie_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
-import '../widget/movie_card.dart';
+import '../widgets/movie_card.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});

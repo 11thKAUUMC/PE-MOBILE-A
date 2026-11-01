@@ -5,8 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../services/fake_movie_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
-import '../widget/common_app_bar.dart';
-import '../widget/rating_dialog.dart';
+import '../widgets/common_app_bar.dart';
+import '../widgets/rating_dialog.dart';
 
 class MovieDetailScreen extends StatefulWidget {
   const MovieDetailScreen({super.key, required this.movieId});

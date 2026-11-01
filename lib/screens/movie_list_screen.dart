@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:movielog/widgets/tmdb_movie_card.dart';
+import 'package:provider/provider.dart';
 
-import '../models/movie.dart';
-
-import '../services/fake_movie_service.dart';
 import '../services/genre_preference.dart';
-
 import '../theme/app_colors.dart';
-import '../widget/common_app_bar.dart';
-import '../widget/movie_card.dart';
-import '../widget/movie_state.dart';
+import '../view_models/movie_list_view_model.dart';
+import '../widgets/common_app_bar.dart';
+import '../widgets/movie_state.dart';
 
 class MovieListScreen extends StatefulWidget {
   const MovieListScreen({super.key});
@@ -18,13 +16,7 @@ class MovieListScreen extends StatefulWidget {
 }
 
 class _MovieListScreenState extends State<MovieListScreen> {
-  String selectedGenre = '전체';
-  final List<String> genres = ['전체', '드라마', 'SF', '스릴러'];
-
-  final movieService = const FakeMovieService();
   final genrePreference = GenrePreference();
-
-  late Future<List<Movie>> _moviesFuture;
 
   bool _isRestoringGenre = true;
   bool _isSavingGenre = false;
@@ -33,8 +25,9 @@ class _MovieListScreenState extends State<MovieListScreen> {
   void initState() {
     super.initState();
 
-    _moviesFuture = movieService.fetchMovies();
-    _restoreGenre();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _restoreGenre();
+    });
   }
 
   Future<void> _restoreGenre() async {
@@ -43,11 +36,33 @@ class _MovieListScreenState extends State<MovieListScreen> {
 
       if (!mounted) return;
 
-      setState(() {
-        selectedGenre = genres.contains(savedGenre) ? savedGenre : '전체';
-      });
+      final viewModel = context.read<MovieListViewModel>();
+
+      // Route에서 시작한 초기 로딩이 끝날 때까지 기다린다.
+      // 기다리는 동안 화면이 닫히면 종료한다.
+      while (viewModel.status == MovieListLoadStatus.idle ||
+          viewModel.status == MovieListLoadStatus.loading) {
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+
+        if (!mounted) return;
+      }
+
+      if (viewModel.status == MovieListLoadStatus.error) return;
+
+      int? savedGenreId;
+
+      for (final genre in viewModel.genres) {
+        if (genre.name == savedGenre) {
+          savedGenreId = genre.id;
+          break;
+        }
+      }
+
+      if (viewModel.selectedGenreId != savedGenreId) {
+        await viewModel.selectGenre(savedGenreId);
+      }
     } catch (error) {
-      debugPrint("장르 복원 실패: $error");
+      debugPrint('장르 복원 실패: $error');
     } finally {
       if (mounted) {
         setState(() {
@@ -57,39 +72,67 @@ class _MovieListScreenState extends State<MovieListScreen> {
     }
   }
 
-  Future<void> _selectGenre(String genre) async {
+  Future<void> _selectGenre(int? genreId, String genreName) async {
+    final viewModel = context.read<MovieListViewModel>();
+
+    if (_isRestoringGenre ||
+        _isSavingGenre ||
+        viewModel.status == MovieListLoadStatus.loading) {
+      return;
+    }
+
     setState(() {
-      selectedGenre = genre;
       _isSavingGenre = true;
     });
 
+    // await 전에 호출하므로 즉시 loading 상태로 바뀐다.
+    final request = viewModel.selectGenre(genreId);
+
     try {
-      await genrePreference.save(genre);
+      await genrePreference.save(genreName);
     } catch (error) {
       debugPrint('장르 저장 실패: $error');
 
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('장르 선택을 저장하지 못했습니다. 다시 선택해 주세요.')),
-      );
-    } finally {
       if (mounted) {
-        setState(() {
-          _isSavingGenre = false;
-        });
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('장르 선택을 저장하지 못했습니다.')));
+      }
+    } finally {
+      try {
+        await request;
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isSavingGenre = false;
+          });
+        }
       }
     }
   }
 
   void _retry() {
-    setState(() {
-      _moviesFuture = movieService.fetchMovies();
-    });
+    final viewModel = context.read<MovieListViewModel>();
+
+    if (viewModel.genres.isEmpty) {
+      viewModel.loadInitial();
+    } else {
+      viewModel.selectGenre(viewModel.selectedGenreId);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final viewModel = context.watch<MovieListViewModel>();
+
+    final isBusy =
+        _isRestoringGenre ||
+        _isSavingGenre ||
+        viewModel.status == MovieListLoadStatus.loading;
+
+    final genreNames = {
+      for (final genre in viewModel.genres) genre.id: genre.name,
+    };
+
     return Scaffold(
       appBar: const CommonAppBar(title: '영화'),
       body: Column(
@@ -99,18 +142,24 @@ class _MovieListScreenState extends State<MovieListScreen> {
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: genres.length,
-              separatorBuilder: (context, index) => const SizedBox(width: 8),
+              itemCount: viewModel.genres.length + 1,
+              separatorBuilder: (_, __) => const SizedBox(width: 8),
               itemBuilder: (context, index) {
-                final genre = genres[index];
-                final isSelected = genre == selectedGenre;
+                final genre = index == 0 ? null : viewModel.genres[index - 1];
+
+                final int? genreId = genre?.id;
+                final genreName = genre?.name ?? '전체';
+
+                final isSelected = genreId == viewModel.selectedGenreId;
 
                 return ChoiceChip(
-                  label: Text(genre),
+                  label: Text(genreName),
                   selected: isSelected,
                   showCheckmark: false,
                   selectedColor: AppColors.violet,
-                  disabledColor: AppColors.darkWhite,
+                  disabledColor: isSelected
+                      ? AppColors.violet
+                      : AppColors.darkWhite,
                   backgroundColor: AppColors.darkWhite,
                   labelStyle: TextStyle(
                     color: isSelected ? Colors.white : AppColors.textPrimary,
@@ -119,22 +168,17 @@ class _MovieListScreenState extends State<MovieListScreen> {
                         ? FontWeight.bold
                         : FontWeight.normal,
                   ),
-
                   shape: const StadiumBorder(side: BorderSide.none),
-
                   padding: const EdgeInsets.symmetric(
                     horizontal: 12,
                     vertical: 8,
                   ),
                   materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-
-                  onSelected: _isRestoringGenre || _isSavingGenre
+                  onSelected: isBusy
                       ? null
                       : (selected) {
-                          if (selected) {
-                            setState(() {
-                              _selectGenre(genre);
-                            });
+                          if (selected && !isSelected) {
+                            _selectGenre(genreId, genreName);
                           }
                         },
                 );
@@ -142,57 +186,47 @@ class _MovieListScreenState extends State<MovieListScreen> {
             ),
           ),
           const SizedBox(height: 12),
-
-          // 영화 목록 (GridView.builder)
-          Expanded(
-            child: FutureBuilder<List<Movie>>(
-              future: _moviesFuture,
-              builder: (context, snapshot) {
-                if (_isRestoringGenre ||
-                    snapshot.connectionState == ConnectionState.waiting) {
-                  return const MovieListLoading();
-                }
-
-                if (snapshot.hasError) {
-                  return MovieListError(onRetry: _retry);
-                }
-
-                final movies = snapshot.data ?? const <Movie>[];
-
-                final filteredMovies = selectedGenre == '전체'
-                    ? movies
-                    : movies
-                          .where((movie) => movie.genre == selectedGenre)
-                          .toList();
-
-                if (filteredMovies.isEmpty) {
-                  return const MovieListEmpty();
-                }
-
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: GridView.builder(
-                    itemCount: filteredMovies.length,
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          crossAxisSpacing: 12,
-                          mainAxisSpacing: 16,
-                          childAspectRatio: 0.65,
-                        ),
-                    itemBuilder: (context, index) {
-                      return MovieCard(
-                        movie: filteredMovies[index],
-                        showBadgeRating:
-                            true, // 우측 상단 ★ 4.8 배지 및 하단 '년도 · 장르' 적용
-                      );
-                    },
-                  ),
-                );
-              },
-            ),
-          ),
+          Expanded(child: _buildMovieList(viewModel, genreNames)),
         ],
+      ),
+    );
+  }
+
+  Widget _buildMovieList(
+    MovieListViewModel viewModel,
+    Map<int, String> genreNames,
+  ) {
+    if (_isRestoringGenre ||
+        viewModel.status == MovieListLoadStatus.idle ||
+        viewModel.status == MovieListLoadStatus.loading) {
+      return const MovieListLoading();
+    }
+
+    if (viewModel.status == MovieListLoadStatus.error) {
+      return MovieListError(onRetry: _retry);
+    }
+
+    if (viewModel.status == MovieListLoadStatus.empty ||
+        viewModel.movies.isEmpty) {
+      return const MovieListEmpty();
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: GridView.builder(
+        itemCount: viewModel.movies.length,
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 16,
+          childAspectRatio: 0.65,
+        ),
+        itemBuilder: (context, index) {
+          return TmdbMovieCard(
+            movie: viewModel.movies[index],
+            genreNames: genreNames,
+          );
+        },
       ),
     );
   }
