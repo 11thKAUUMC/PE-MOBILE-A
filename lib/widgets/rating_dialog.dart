@@ -3,9 +3,17 @@ import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import 'movie_rating_input.dart';
 
-class RatingDialog extends StatefulWidget {
-  const RatingDialog({super.key});
+class MovieRatingResult {
+  const MovieRatingResult({required this.movieId, required this.score});
 
+  final int movieId;
+  final double score;
+}
+
+class RatingDialog extends StatefulWidget {
+  const RatingDialog({super.key, required this.movieId});
+
+  final int movieId;
   @override
   State<RatingDialog> createState() => _RatingDialogState();
 }
@@ -18,7 +26,7 @@ class _RatingDialogState extends State<RatingDialog> {
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
-        padding: const EdgeInsets.all(24.0),
+        padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -43,7 +51,10 @@ class _RatingDialogState extends State<RatingDialog> {
                 minimumSize: const Size(double.infinity, 44),
               ),
               onPressed: () {
-                Navigator.pop(context, _rating);
+                Navigator.pop(
+                  context,
+                  MovieRatingResult(movieId: widget.movieId, score: _rating),
+                );
               },
               child: const Text('확인'),
             ),

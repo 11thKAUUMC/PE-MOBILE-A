@@ -1,8 +1,13 @@
 import 'package:go_router/go_router.dart';
+
 import 'package:movielog/data/services/tmdb_movie_service.dart';
+import 'package:movielog/data/models/tmdb_movie_dto.dart';
+
 import 'package:movielog/screens/home_screen.dart';
 import 'package:movielog/screens/main_screen.dart';
 import 'package:movielog/screens/movie_list_screen.dart';
+import 'package:movielog/screens/movie_detail_screen.dart';
+
 import 'package:movielog/view_models/movie_home_view_model.dart';
 import 'package:movielog/view_models/movie_list_view_model.dart';
 import 'package:provider/provider.dart';
@@ -14,6 +19,17 @@ class AppRouter {
     initialLocation: '/home',
     routes: [
       GoRoute(path: '/', redirect: (context, state) => '/home'),
+      GoRoute(
+        path: '/movies/:id',
+        builder: (context, state) {
+          final extra = state.extra;
+
+          return MovieDetailScreen(
+            movieId: state.pathParameters['id'],
+            movie: extra is TmdbMovieDto ? extra : null,
+          );
+        },
+      ),
       ShellRoute(
         builder: (context, state, child) {
           final path = state.uri.path;
