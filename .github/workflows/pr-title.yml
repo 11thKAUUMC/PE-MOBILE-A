@@ -1,0 +1,53 @@
+name: 이슈 제목으로 PR 제목 설정
+
+on:
+  pull_request:
+    types: [opened]
+
+permissions:
+  issues: read
+  pull-requests: write
+
+jobs:
+  set-title:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: PR 본문에서 이슈 번호를 읽고 제목 변경
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const body = pr.body ?? "";
+
+            // PR 본문의 "- resolve #23"에서 번호 추출
+            const match = body.match(/^\s*-\s*resolve\s+#(\d+)\s*$/im);
+
+            if (!match) {
+              core.info("PR 본문에 '- resolve #숫자'가 없어 건너뜁니다.");
+              return;
+            }
+
+            const issueNumber = Number(match[1]);
+
+            // 현재 저장소에서 해당 이슈 조회
+            const { data: issue } = await github.rest.issues.get({
+              ...context.repo,
+              issue_number: issueNumber,
+            });
+
+            // 조회한 번호가 PR 번호라면 중단
+            if (issue.pull_request) {
+              core.setFailed("입력한 번호는 이슈가 아닌 PR 번호입니다.");
+              return;
+            }
+
+            // PR 제목 변경
+            await github.rest.pulls.update({
+              ...context.repo,
+              pull_number: pr.number,
+              title: `[#${issueNumber}] ${issue.title}`,
+            });
+
+            core.info("PR 제목을 변경했습니다.");
