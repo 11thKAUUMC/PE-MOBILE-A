@@ -9,19 +9,19 @@ permissions:
   pull-requests: write
 
 jobs:
-  set-title:
+  set-title-and-labels:
     if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
 
     steps:
-      - name: PR 본문에서 이슈 번호를 읽고 제목 변경
+      - name: PR 본문에서 이슈 번호를 읽고 제목과 라벨 변경
         uses: actions/github-script@v9
         with:
           script: |
             const pr = context.payload.pull_request;
             const body = pr.body ?? "";
 
-            // PR 본문의 "- resolve #23"에서 번호 추출
+            // PR 본문의 "- resolve #23"에서 번호만 가져오기
             const match = body.match(/^\s*-\s*resolve\s+#(\d+)\s*$/im);
 
             if (!match) {
@@ -37,7 +37,7 @@ jobs:
               issue_number: issueNumber,
             });
 
-            // 조회한 번호가 PR 번호라면 중단
+            // 조회한 번호가 PR 번호? -> 중단
             if (issue.pull_request) {
               core.setFailed("입력한 번호는 이슈가 아닌 PR 번호입니다.");
               return;
@@ -47,7 +47,21 @@ jobs:
             await github.rest.pulls.update({
               ...context.repo,
               pull_number: pr.number,
-              title: `[#${issueNumber}] ${issue.title}`,
+              title: issue.title,
             });
 
-            core.info("PR 제목을 변경했습니다.");
+            // 이슈의 라벨 이름 가져오기
+            const labels = issue.labels.map(lable =>
+              typeof label === "string" ? label : label.name
+            ).filter(Boolean);
+
+            // 이슈에 라벨 존재? -> pr에도 추가
+            if(labels.length >0){
+              await github.rest.issues.addLabels({
+                ...context.repo,
+                issue_number: pr_number,
+                labels,
+              });
+            }
+
+            core.info("PR 제목과 라벨을 변경했습니다.");
