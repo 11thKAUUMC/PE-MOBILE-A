@@ -1,90 +1,105 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
-import '../data/mock_movies.dart';
-import '../models/movie.dart';
-import '../theme/app_colors.dart';
+import '../view_models/movie_home_view_model.dart';
+import '../view_models/movie_list_view_model.dart';
 import '../widgets/movie_card.dart';
+import '../widgets/movie_list_loading.dart';
+import '../widgets/movie_list_empty.dart';
+import '../widgets/movie_list_error.dart';
+import '../theme/app_colors.dart';
+import '../models/movie.dart';
+import '../widgets/tmdb_poster_image.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
-
   @override
-  Widget build(BuildContext context) {
-    final featuredMovie = movies.first;
-
-    return Scaffold(
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(
+      centerTitle: false,
+      title: const Text(
+        'MovieLog',
+        style: TextStyle(color: AppColors.violet, fontWeight: FontWeight.w800),
+      ),
+      actions: [
+        IconButton(
+          onPressed: () => context.go('/movies'),
+          icon: const Icon(Icons.search, color: AppColors.violet),
+        ),
+      ],
+    ),
+    body: Consumer<MovieHomeViewModel>(
+      builder: (context, vm, child) {
+        return switch (vm.status) {
+          MovieLoadStatus.idle ||
+          MovieLoadStatus.loading => const MovieListLoading(),
+          MovieLoadStatus.error => MovieListError(
+            onRetry: () => context.read<MovieHomeViewModel>().loadPopular(),
+          ),
+          MovieLoadStatus.empty => const MovieListEmpty(),
+          MovieLoadStatus.success => ListView(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'MovieLog',
-                    style: TextStyle(
-                      color: AppColors.violet,
-                      fontSize: 30,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: () => context.go('/movies'),
-                    icon: const Icon(
-                      Icons.search,
-                      color: AppColors.violet,
-                      size: 32,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 56),
               const Text(
                 '오늘은 어떤\n영화를 볼까요?',
                 style: TextStyle(
-                  fontSize: 40,
-                  height: 1.2,
+                  fontSize: 28,
+                  height: 1.3,
                   fontWeight: FontWeight.w800,
                 ),
               ),
-              const SizedBox(height: 32),
-              _FeaturedMovieCard(movie: featuredMovie),
-              const SizedBox(height: 40),
+              const SizedBox(height: 16),
+              _FeaturedMovieCard(
+                movie: vm.popularMovies.first.toMovie(const []),
+              ),
+              const SizedBox(height: 12),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    '인기 영화',
-                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800),
+                  Text(
+                    '인기 영화 ${vm.popularMovies.length}개',
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                   TextButton(
                     onPressed: () => context.go('/movies'),
-                    child: const Text('전체보기  ›'),
+                    child: const Text('전체보기 ›'),
                   ),
                 ],
               ),
               const SizedBox(height: 12),
               SizedBox(
-                height: 250,
+                height: 248,
                 child: ListView.separated(
                   scrollDirection: Axis.horizontal,
-                  itemCount: movies.length,
+                  itemCount: vm.popularMovies.length,
                   separatorBuilder: (_, _) => const SizedBox(width: 14),
-                  itemBuilder: (context, index) => SizedBox(
-                    width: 145,
-                    child: MovieCard(movie: movies[index]),
+                  itemBuilder: (_, i) => SizedBox(
+                    width: 144,
+                    child: MovieCard(
+                      movie: vm.popularMovies[i].toMovie(const []),
+                    ),
                   ),
                 ),
               ),
+              const SizedBox(height: 24),
+              const Text(
+                '영화 정보 제공: TMDB',
+                style: TextStyle(color: AppColors.gray),
+              ),
+              const Text(
+                'This product uses the TMDB API but is not endorsed or certified by TMDB.',
+                style: TextStyle(fontSize: 11, color: AppColors.gray),
+              ),
             ],
           ),
-        ),
-      ),
-    );
-  }
+        };
+      },
+    ),
+  );
 }
 
 class _FeaturedMovieCard extends StatelessWidget {
@@ -95,14 +110,14 @@ class _FeaturedMovieCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ClipRRect(
-      borderRadius: BorderRadius.circular(32),
+      borderRadius: BorderRadius.circular(24),
       child: SizedBox(
-        height: 510,
+        height: 480,
         width: double.infinity,
         child: Stack(
           fit: StackFit.expand,
           children: [
-            Image.asset(movie.posterAsset, fit: BoxFit.cover),
+            TmdbPosterImage(posterPath: movie.posterPath),
             const DecoratedBox(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
@@ -114,9 +129,9 @@ class _FeaturedMovieCard extends StatelessWidget {
               ),
             ),
             Positioned(
-              left: 28,
-              right: 28,
-              bottom: 28,
+              left: 24,
+              right: 24,
+              bottom: 24,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -142,31 +157,36 @@ class _FeaturedMovieCard extends StatelessWidget {
                   const SizedBox(height: 18),
                   Text(
                     movie.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 34,
+                      fontSize: 28,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '${movie.tags.take(2).join(' · ')} · ${movie.duration}분',
+                    '${movie.year > 0 ? movie.year : ''}',
                     style: const TextStyle(color: Colors.white, fontSize: 17),
                   ),
                   const SizedBox(height: 24),
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
-                      onPressed: () => context.push('/movies/${movie.id}'),
+                      onPressed: () =>
+                          context.push('/movies/${movie.id}', extra: movie),
                       icon: const Icon(Icons.info),
                       label: const Text('상세보기'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.violet,
-                        minimumSize: const Size.fromHeight(58),
-                        textStyle: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
-                        ),
+                        shape: const StadiumBorder(),
+                        minimumSize: const Size.fromHeight(46),
+                        textStyle: Theme.of(context).textTheme.labelLarge
+                            ?.copyWith(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                            ),
                       ),
                     ),
                   ),

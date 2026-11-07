@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'movie_rating_input.dart';
 
 class RatingDialog extends StatefulWidget {
-  const RatingDialog({super.key});
+  const RatingDialog({super.key, this.movieId});
+
+  final int? movieId;
 
   @override
   State<RatingDialog> createState() => _RatingDialogState();
@@ -22,11 +24,9 @@ class _RatingDialogState extends State<RatingDialog> {
           children: [
             const Text(
               '영화는 어떠셨나요?',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w700,
-              ),
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
             ),
+            if (widget.movieId != null) Text('영화 ID ${widget.movieId}'),
             const SizedBox(height: 24),
             MovieRatingInput(
               rating: rating,

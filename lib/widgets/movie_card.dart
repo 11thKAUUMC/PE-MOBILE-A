@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../models/movie.dart';
+import 'tmdb_poster_image.dart';
 import '../theme/app_colors.dart';
 
 class MovieCard extends StatelessWidget {
@@ -13,7 +14,7 @@ class MovieCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: () => context.push('/movies/${movie.id}'),
+      onTap: () => context.push('/movies/${movie.id}', extra: movie),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -22,12 +23,14 @@ class MovieCard extends StatelessWidget {
               children: [
                 ClipRRect(
                   borderRadius: BorderRadius.circular(12),
-                  child: Image.asset(
-                    movie.posterAsset,
-                    width: double.infinity,
-                    height: double.infinity,
-                    fit: BoxFit.cover,
-                  ),
+                  child: movie.isTmdb
+                      ? TmdbPosterImage(posterPath: movie.posterPath)
+                      : Image.asset(
+                          movie.posterAsset,
+                          width: double.infinity,
+                          height: double.infinity,
+                          fit: BoxFit.cover,
+                        ),
                 ),
                 Positioned(
                   top: 8,
@@ -65,7 +68,10 @@ class MovieCard extends StatelessWidget {
           ),
           const SizedBox(height: 3),
           Text(
-            '${movie.year} · ${movie.genre}',
+            [
+              if (movie.year > 0) '${movie.year}',
+              if (movie.genre.isNotEmpty) movie.genre,
+            ].join(' · '),
             style: const TextStyle(color: AppColors.gray, fontSize: 13),
           ),
         ],
