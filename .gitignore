@@ -46,3 +46,9 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# TMDB token
+.env
+
+# Downloaded TMDB poster cache
+docs/week05/live/posters/

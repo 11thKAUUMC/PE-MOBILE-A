@@ -9,8 +9,12 @@ class Movie {
     required this.averageRating,
     required this.synopsis,
     required this.tags,
+    this.posterPath,
+    this.isTmdb = false,
   });
 
+  final String? posterPath;
+  final bool isTmdb;
   final int id;
   final String title;
   final String genre;

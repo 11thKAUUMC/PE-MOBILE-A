@@ -1,3 +1,10 @@
+import 'package:provider/provider.dart';
+
+import '../models/movie.dart';
+import '../data/services/tmdb_movie_service.dart';
+import '../view_models/movie_home_view_model.dart';
+import '../view_models/movie_list_view_model.dart';
+
 import 'package:go_router/go_router.dart';
 
 import '../screens/home_screen.dart';
@@ -12,12 +19,9 @@ class AppRouter {
   AppRouter._();
 
   static final router = GoRouter(
-    initialLocation: '/movies',
+    initialLocation: '/home',
     routes: [
-      GoRoute(
-        path: '/start',
-        builder: (context, state) => const StartScreen(),
-      ),
+      GoRoute(path: '/start', builder: (context, state) => const StartScreen()),
       GoRoute(
         path: '/signup',
         builder: (context, state) => const SignUpScreen(),
@@ -31,19 +35,26 @@ class AppRouter {
             _ => 0,
           };
 
-          return MainScreen(
-            currentIndex: currentIndex,
-            child: child,
-          );
+          return MainScreen(currentIndex: currentIndex, child: child);
         },
         routes: [
           GoRoute(
             path: '/home',
-            builder: (context, state) => const HomeScreen(),
+            builder: (context, state) => ChangeNotifierProvider(
+              create: (context) =>
+                  MovieHomeViewModel(context.read<TmdbMovieService>())
+                    ..loadPopular(),
+              child: const HomeScreen(),
+            ),
           ),
           GoRoute(
             path: '/movies',
-            builder: (context, state) => const MovieListScreen(),
+            builder: (context, state) => ChangeNotifierProvider(
+              create: (context) =>
+                  MovieListViewModel(context.read<TmdbMovieService>())
+                    ..loadInitial(),
+              child: const MovieListScreen(),
+            ),
           ),
           GoRoute(
             path: '/my',
@@ -54,13 +65,14 @@ class AppRouter {
       GoRoute(
         path: '/movies/:movieId',
         builder: (context, state) {
-          final movieId = int.tryParse(
-            state.pathParameters['movieId'] ?? '',
-          );
+          final movieId = int.tryParse(state.pathParameters['movieId'] ?? '');
 
-          return MovieDetailScreen(movieId: movieId);
+          return MovieDetailScreen(
+            movieId: movieId,
+            movie: state.extra is Movie ? state.extra as Movie : null,
+          );
         },
-      )
+      ),
     ],
   );
 }

@@ -1,3 +1,6 @@
+import '../models/movie.dart';
+import '../widgets/tmdb_poster_image.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:go_router/go_router.dart';
@@ -7,9 +10,10 @@ import '../theme/app_colors.dart';
 import '../widgets/rating_dialog.dart';
 
 class MovieDetailScreen extends StatefulWidget {
-  const MovieDetailScreen({super.key, required this.movieId});
+  const MovieDetailScreen({super.key, required this.movieId, this.movie});
 
   final int? movieId;
+  final Movie? movie;
 
   @override
   State<MovieDetailScreen> createState() => _MovieDetailScreenState();
@@ -22,7 +26,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
   Future<void> _rateMovie() async {
     final rating = await showDialog<double>(
       context: context,
-      builder: (_) => const RatingDialog(),
+      builder: (_) => RatingDialog(movieId: widget.movieId),
     );
 
     if (!mounted || rating == null) return;
@@ -31,7 +35,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final movie = findMovieById(widget.movieId);
+    final movie = widget.movie ?? findMovieById(widget.movieId);
 
     if (movie == null) {
       return const Scaffold(body: Center(child: Text('영화를 찾을 수 없습니다.')));
@@ -61,7 +65,9 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
           children: [
             AspectRatio(
               aspectRatio: 1.08,
-              child: Image.asset(movie.posterAsset, fit: BoxFit.cover),
+              child: movie.isTmdb
+                  ? TmdbPosterImage(posterPath: movie.posterPath)
+                  : Image.asset(movie.posterAsset, fit: BoxFit.cover),
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 30, 24, 28),
@@ -77,7 +83,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    '${movie.year} · ${movie.tags.take(2).join('/')} · ${movie.duration}분',
+                    '${movie.year} · ${movie.tags.take(2).join('/')} ${movie.duration > 0 ? '· ${movie.duration}분' : ''}',
                     style: const TextStyle(color: AppColors.gray, fontSize: 15),
                   ),
                   const SizedBox(height: 18),
@@ -92,7 +98,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
                       ),
                       const SizedBox(width: 12),
                       Text(
-                        '${movie.averageRating.toStringAsFixed(1)} (1,245)',
+                        '${movie.averageRating.toStringAsFixed(1)} / 5',
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
