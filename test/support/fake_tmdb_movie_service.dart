@@ -66,6 +66,28 @@ class FakeTmdbMovieService extends TmdbMovieService {
     return sampleGenres;
   }
 
+  @override
+  Future<TmdbMovieDto> fetchMovieDetail(int movieId) async {
+    await Future<void>.delayed(const Duration(milliseconds: 10));
+    if (mode == FakeTmdbLoadMode.failure) {
+      throw DioException(requestOptions: RequestOptions(path: '/movie/$movieId'));
+    }
+    return sampleMovies.firstWhere(
+      (movie) => movie.id == movieId,
+      orElse: () => sampleMovies.first,
+    );
+  }
+
+  @override
+  Future<TmdbMovieDto?> findMovieById(int movieId) async {
+    try {
+      return await fetchMovieDetail(movieId);
+    } on DioException catch (error) {
+      if (error.response?.statusCode == 404) return null;
+      rethrow;
+    }
+  }
+
   TmdbMoviePageDto _page() {
     if (mode == FakeTmdbLoadMode.failure) {
       throw DioException(requestOptions: RequestOptions(path: '/discover'));

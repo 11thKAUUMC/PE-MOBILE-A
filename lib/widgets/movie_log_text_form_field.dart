@@ -11,6 +11,9 @@ class MovieLogTextFormField extends StatefulWidget {
     required this.controller,
     required this.validator,
     this.showStatus = false,
+    this.showSuccessIcon = true,
+    this.errorText,
+    this.trailing,
     this.focusNode,
     this.keyboardType,
     this.textInputAction,
@@ -26,6 +29,16 @@ class MovieLogTextFormField extends StatefulWidget {
 
   /// 오류·완료 아이콘과 오류 배경을 보여줄지 여부. 사용자가 입력했거나 제출을 시도한 뒤에 true로 둔다.
   final bool showStatus;
+
+  /// true면 로컬 검증 통과 시 초록 체크를 보여준다.
+  /// 중복 확인 필드는 서버 available일 때만 true로 둔다.
+  final bool showSuccessIcon;
+
+  /// ViewModel 등에서 내려주는 서버 검증 에러. validator와 함께 표시된다.
+  final String? errorText;
+
+  /// 입력창 오른쪽(예: 중복 확인 버튼). 라벨 아래 Row에 배치한다.
+  final Widget? trailing;
   final FocusNode? focusNode;
   final TextInputType? keyboardType;
   final TextInputAction? textInputAction;
@@ -42,34 +55,55 @@ class _MovieLogTextFormFieldState extends State<MovieLogTextFormField> {
 
   @override
   Widget build(BuildContext context) {
-    final errorText = widget.validator(widget.controller.text);
-    final hasError = widget.showStatus && errorText != null;
+    final localError = widget.validator(widget.controller.text);
+    final combinedError = localError ?? widget.errorText;
+    final hasError = widget.showStatus && combinedError != null;
+
+    final field = TextFormField(
+      // 서버 확인 상태가 바뀌면 FormField 검증 표시를 처음부터 다시 그린다.
+      key: ValueKey<String>(
+        '${widget.errorText ?? ''}_${widget.showSuccessIcon}_$hasError',
+      ),
+      controller: widget.controller,
+      focusNode: widget.focusNode,
+      keyboardType: widget.keyboardType,
+      textInputAction: widget.textInputAction,
+      obscureText: widget.isPassword && _obscured,
+      autocorrect: !widget.isPassword,
+      enableSuggestions: !widget.isPassword,
+      decoration: InputDecoration(
+        hintText: widget.hint,
+        fillColor: hasError ? AppColors.errorContainer : null,
+        suffixIcon: _buildSuffix(
+          hasError: hasError,
+          isValid: combinedError == null && widget.showSuccessIcon,
+        ),
+      ),
+      validator: (value) {
+        final local = widget.validator(value);
+        if (local != null) return local;
+        return widget.errorText;
+      },
+      onChanged: widget.onChanged,
+      onFieldSubmitted: widget.onFieldSubmitted,
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(widget.label, style: AppTextStyles.titleMedium),
         const SizedBox(height: 8),
-        TextFormField(
-          controller: widget.controller,
-          focusNode: widget.focusNode,
-          keyboardType: widget.keyboardType,
-          textInputAction: widget.textInputAction,
-          obscureText: widget.isPassword && _obscured,
-          autocorrect: !widget.isPassword,
-          enableSuggestions: !widget.isPassword,
-          decoration: InputDecoration(
-            hintText: widget.hint,
-            fillColor: hasError ? AppColors.errorContainer : null,
-            suffixIcon: _buildSuffix(
-              hasError: hasError,
-              isValid: errorText == null,
-            ),
+        if (widget.trailing == null)
+          field
+        else
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: field),
+              const SizedBox(width: 8),
+              widget.trailing!,
+            ],
           ),
-          validator: widget.validator,
-          onChanged: widget.onChanged,
-          onFieldSubmitted: widget.onFieldSubmitted,
-        ),
       ],
     );
   }

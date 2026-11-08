@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
+import '../theme/app_colors.dart';
+import '../theme/app_text_styles.dart';
 import '../widgets/common_app_bar.dart';
 import 'edit_profile_button.dart';
 import 'favorite_genres.dart';
@@ -39,6 +42,20 @@ class ProfileScreen extends StatelessWidget {
               const ProfileStats(stats: _stats),
               const SizedBox(height: 32),
               const FavoriteGenres(genres: _genres),
+              const SizedBox(height: 32),
+              Text('내 활동', style: AppTextStyles.titleMedium),
+              const SizedBox(height: 8),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(
+                  '내가 등록한 평점',
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    color: AppColors.black,
+                  ),
+                ),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => context.push('/my/ratings'),
+              ),
             ],
           ),
         ),

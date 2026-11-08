@@ -29,9 +29,7 @@ class TmdbMovieDto {
       posterPath: json['poster_path'] as String?,
       backdropPath: json['backdrop_path'] as String?,
       releaseDate: json['release_date'] as String?,
-      genreIds: (json['genre_ids'] as List<dynamic>? ?? const [])
-          .map((value) => (value as num).toInt())
-          .toList(),
+      genreIds: _parseGenreIds(json),
       voteAverage: (json['vote_average'] as num? ?? 0).toDouble(),
       popularity: (json['popularity'] as num? ?? 0).toDouble(),
     );
@@ -41,5 +39,17 @@ class TmdbMovieDto {
     final date = releaseDate;
     if (date == null || date.length < 4) return null;
     return date.substring(0, 4);
+  }
+
+  static List<int> _parseGenreIds(Map<String, dynamic> json) {
+    final genreIds = json['genre_ids'] as List<dynamic>?;
+    if (genreIds != null) {
+      return genreIds.map((value) => (value as num).toInt()).toList();
+    }
+    final genres = json['genres'] as List<dynamic>?;
+    if (genres == null) return const [];
+    return genres
+        .map((item) => ((item as Map<String, dynamic>)['id'] as num).toInt())
+        .toList();
   }
 }
