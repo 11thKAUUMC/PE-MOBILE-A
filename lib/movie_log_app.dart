@@ -1,5 +1,6 @@
 import 'core/network/movie_log_client.dart';
 import 'data/services/member_check_service.dart';
+import 'data/services/rating_api_service.dart';
 
 import 'package:dio/dio.dart';
 import 'package:provider/provider.dart';
@@ -25,6 +26,9 @@ class MovieLogApp extends StatelessWidget {
         ),
         Provider<MemberCheckService>(
           create: (context) => MemberCheckService(context.read<Dio>()),
+        ),
+        Provider<RatingApiService>(
+          create: (context) => RatingApiService(context.read<Dio>()),
         ),
         Provider<TmdbMovieService>(
           create: (_) => TmdbMovieService(createTmdbClient()),
