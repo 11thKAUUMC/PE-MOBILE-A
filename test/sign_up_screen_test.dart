@@ -1,17 +1,33 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:provider/provider.dart';
 
+import 'package:movielog/data/services/member_check_service.dart';
 import 'package:movielog/sign_up/sign_up_screen.dart';
 import 'package:movielog/theme/app_theme.dart';
 
+class _FakeMemberCheckService extends MemberCheckService {
+  _FakeMemberCheckService() : super(Dio());
+
+  @override
+  Future<bool> checkNickname(String nickname) async => true;
+
+  @override
+  Future<bool> checkEmail(String email) async => true;
+}
+
 Widget _app({EdgeInsets viewInsets = EdgeInsets.zero}) {
-  return MaterialApp(
-    theme: AppTheme.light,
-    builder: (context, child) => MediaQuery(
-      data: MediaQuery.of(context).copyWith(viewInsets: viewInsets),
-      child: child!,
+  return Provider<MemberCheckService>.value(
+    value: _FakeMemberCheckService(),
+    child: MaterialApp(
+      theme: AppTheme.light,
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(context).copyWith(viewInsets: viewInsets),
+        child: child!,
+      ),
+      home: const SignUpScreen(),
     ),
-    home: const SignUpScreen(),
   );
 }
 
@@ -41,7 +57,7 @@ void main() {
     expect(_submitButton(tester).onPressed, isNull);
   });
 
-  testWidgets('모든 입력이 유효하고 약관에 동의하면 버튼이 활성화된다', (tester) async {
+  testWidgets('중복 확인까지 통과하고 약관에 동의하면 버튼이 활성화된다', (tester) async {
     await tester.pumpWidget(_app());
 
     final fields = find.byType(TextFormField);
@@ -53,6 +69,13 @@ void main() {
 
     await tester.tap(find.byType(Checkbox));
     await tester.pump();
+    expect(_submitButton(tester).onPressed, isNull);
+
+    final checkButtons = find.widgetWithText(ElevatedButton, '중복 확인');
+    await tester.tap(checkButtons.at(0));
+    await tester.pumpAndSettle();
+    await tester.tap(checkButtons.at(1));
+    await tester.pumpAndSettle();
     expect(_submitButton(tester).onPressed, isNotNull);
   });
 

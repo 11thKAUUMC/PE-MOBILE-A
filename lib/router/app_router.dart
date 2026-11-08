@@ -3,16 +3,19 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../data/models/tmdb_movie_dto.dart';
+import '../data/services/rating_api_service.dart';
 import '../data/services/tmdb_movie_service.dart';
 import '../home/home_screen.dart';
 import '../main/main_screen.dart';
 import '../movie_detail/movie_detail_screen.dart';
 import '../movies/movie_list_screen.dart';
+import '../profile/my_ratings_screen.dart';
 import '../profile/profile_screen.dart';
 import '../sign_up/sign_up_screen.dart';
 import '../start_screen.dart';
 import '../view_models/movie_home_view_model.dart';
 import '../view_models/movie_list_view_model.dart';
+import '../view_models/my_ratings_view_model.dart';
 
 class AppRouter {
   AppRouter._();
@@ -79,6 +82,21 @@ class AppRouter {
               GoRoute(
                 path: '/my',
                 builder: (context, state) => const ProfileScreen(),
+                routes: [
+                  GoRoute(
+                    path: 'ratings',
+                    parentNavigatorKey: _rootNavigatorKey,
+                    builder: (context, state) =>
+                        ChangeNotifierProvider<MyRatingsViewModel>(
+                          create: (context) => MyRatingsViewModel(
+                            context.read<RatingApiService>(),
+                            context.read<TmdbMovieService>(),
+                            sampleMemberId,
+                          )..load(),
+                          child: const MyRatingsScreen(),
+                        ),
+                  ),
+                ],
               ),
             ],
           ),

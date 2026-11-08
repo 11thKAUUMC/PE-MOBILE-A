@@ -1,14 +1,26 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 
+import 'package:movielog/data/services/member_check_service.dart';
 import 'package:movielog/movie_log_app.dart';
 import 'package:movielog/router/app_router.dart';
 import 'package:movielog/widgets/movie_rating_input.dart';
 
 import 'support/fake_tmdb_movie_service.dart';
+
+class _FakeMemberCheckService extends MemberCheckService {
+  _FakeMemberCheckService() : super(Dio());
+
+  @override
+  Future<bool> checkNickname(String nickname) async => true;
+
+  @override
+  Future<bool> checkEmail(String email) async => true;
+}
 
 Future<void> _pumpAppAt(WidgetTester tester, String location) async {
   tester.view.physicalSize = const Size(390, 844);
@@ -17,7 +29,10 @@ Future<void> _pumpAppAt(WidgetTester tester, String location) async {
 
   AppRouter.router.go(location);
   await tester.pumpWidget(
-    MovieLogApp(tmdbMovieService: FakeTmdbMovieService()),
+    MovieLogApp(
+      tmdbMovieService: FakeTmdbMovieService(),
+      memberCheckService: _FakeMemberCheckService(),
+    ),
   );
   await tester.pumpAndSettle();
 }
@@ -43,6 +58,11 @@ void main() {
     await tester.enterText(fields.at(2), 'password123');
     await tester.tap(find.byType(Checkbox));
     await tester.pump();
+    final checkButtons = find.widgetWithText(ElevatedButton, '중복 확인');
+    await tester.tap(checkButtons.at(0));
+    await tester.pumpAndSettle();
+    await tester.tap(checkButtons.at(1));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('가입하기'));
     await tester.pumpAndSettle();
 
