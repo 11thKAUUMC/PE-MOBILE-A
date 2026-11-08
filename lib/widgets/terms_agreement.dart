@@ -1,8 +1,7 @@
-// terms_agreement.dart는 화면 하단의 필수 약관 동의 Checkbox 영역을 구현함
-
 import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
+import '../theme/week06_style.dart';
 
 class TermsAgreement extends StatelessWidget {
   const TermsAgreement({
@@ -16,23 +15,36 @@ class TermsAgreement extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        SizedBox(
-          width: 32,
-          height: 32,
-          child: Checkbox(
-            value: value,
-            activeColor: AppColors.violet,
-            onChanged: (value) => onChanged(value ?? false),
-          ),
+    return Semantics(
+      checked: value,
+      child: InkWell(
+        onTap: () => onChanged(!value),
+        child: Row(
+          children: [
+            Container(
+              width: 26,
+              height: 26,
+              decoration: BoxDecoration(
+                color: value ? AppColors.violet : Colors.transparent,
+                border: Border.all(
+                  color: value ? AppColors.violet : Week06Style.muted,
+                ),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: value
+                  ? const Icon(Icons.check, color: Colors.white, size: 23)
+                  : null,
+            ),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(
+                '필수 약관에 동의합니다',
+                style: Week06Style.text(14, weight: FontWeight.w700),
+              ),
+            ),
+          ],
         ),
-        const SizedBox(width: 4),
-        const Text(
-          '필수 약관에 동의합니다',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-        ),
-      ],
+      ),
     );
   }
 }

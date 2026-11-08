@@ -1,3 +1,7 @@
+import 'core/network/movie_log_client.dart';
+import 'data/services/member_check_service.dart';
+
+import 'package:dio/dio.dart';
 import 'package:provider/provider.dart';
 
 import 'core/network/tmdb_client.dart';
@@ -15,6 +19,13 @@ class MovieLogApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
+        Provider<Dio>(
+          create: (_) => createMovieLogClient(),
+          dispose: (_, dio) => dio.close(),
+        ),
+        Provider<MemberCheckService>(
+          create: (context) => MemberCheckService(context.read<Dio>()),
+        ),
         Provider<TmdbMovieService>(
           create: (_) => TmdbMovieService(createTmdbClient()),
         ),
