@@ -4,6 +4,9 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Member } from './entity/member.entity';
 import { MemberController } from './controller/member.controller';
 import { MemberService } from './service/member.service';
+import { Rating } from './entity/rating.entity';
+import { RatingController } from './controller/rating.controller';
+import { RatingService } from './service/rating.service';
 
 @Module({
   imports: [
@@ -18,9 +21,9 @@ import { MemberService } from './service/member.service';
       autoLoadEntities: true,
       synchronize: false,
     }),
-    TypeOrmModule.forFeature([Member]),
+    TypeOrmModule.forFeature([Member, Rating]),
   ],
-  controllers: [MemberController],
-  providers: [MemberService],
+  controllers: [MemberController, RatingController],
+  providers: [MemberService, RatingService],
 })
 export class AppModule {}
