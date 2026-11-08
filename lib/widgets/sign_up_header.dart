@@ -1,20 +1,22 @@
-// sign_up_header.dart는 회원가입 화면 상단의 환영 안내 문구 영역을 구현함
-
 import 'package:flutter/material.dart';
+
+import '../theme/week06_style.dart';
 
 class SignUpHeader extends StatelessWidget {
   const SignUpHeader({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return const Text(
-      '환영합니다!\n간단한 정보를 입력하고 시작해보세요.',
-      textAlign: TextAlign.center,
-      style: TextStyle(
-        fontSize: 16,
-        height: 1.55,
-        fontWeight: FontWeight.w500,
-      ),
+    return Column(
+      children: [
+        Text('환영합니다!', style: Week06Style.text(17, weight: FontWeight.w700)),
+        const SizedBox(height: 4),
+        Text(
+          '간단한 정보만 입력하고 시작해보세요.',
+          style: Week06Style.text(14),
+          textAlign: TextAlign.center,
+        ),
+      ],
     );
   }
 }
