@@ -1,3 +1,5 @@
+import '../data/models/tmdb_movie_dto.dart';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -6,15 +8,17 @@ import 'tmdb_poster_image.dart';
 import '../theme/app_colors.dart';
 
 class MovieCard extends StatelessWidget {
-  const MovieCard({super.key, required this.movie});
+  const MovieCard({super.key, required this.movie, this.tmdbMovie});
 
   final Movie movie;
+  final TmdbMovieDto? tmdbMovie;
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: () => context.push('/movies/${movie.id}', extra: movie),
+      onTap: () =>
+          context.push('/movies/${movie.id}', extra: tmdbMovie ?? movie),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
