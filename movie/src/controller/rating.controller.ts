@@ -1,4 +1,16 @@
-import { Controller, Get, Param, ParseIntPipe } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Post,
+} from '@nestjs/common';
+import { CreateRatingDto, UpdateRatingDto } from '../dto/rating-write.dto';
 import { RatingService } from '../service/rating.service';
 
 @Controller('members')
@@ -8,5 +20,42 @@ export class RatingController {
   @Get(':memberId/ratings')
   getMemberRatings(@Param('memberId', ParseIntPipe) memberId: number) {
     return this.ratingService.getRatingsByMember(memberId);
+  }
+
+  @Post(':memberId/ratings')
+  async create(
+    @Param('memberId', ParseIntPipe) memberId: number,
+    @Body() dto: CreateRatingDto,
+  ) {
+    return {
+      isSuccess: true,
+      code: 'COMMON201',
+      message: '평점 등록에 성공했습니다.',
+      result: await this.ratingService.create(memberId, dto),
+    };
+  }
+
+  @Patch(':memberId/ratings/:ratingId')
+  async update(
+    @Param('memberId', ParseIntPipe) memberId: number,
+    @Param('ratingId', ParseIntPipe) ratingId: number,
+    @Body() dto: UpdateRatingDto,
+  ) {
+    await this.ratingService.update(memberId, ratingId, dto);
+    return {
+      isSuccess: true,
+      code: 'COMMON200',
+      message: '평점 수정에 성공했습니다.',
+      result: null,
+    };
+  }
+
+  @Delete(':memberId/ratings/:ratingId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async delete(
+    @Param('memberId', ParseIntPipe) memberId: number,
+    @Param('ratingId', ParseIntPipe) ratingId: number,
+  ) {
+    await this.ratingService.delete(memberId, ratingId);
   }
 }
