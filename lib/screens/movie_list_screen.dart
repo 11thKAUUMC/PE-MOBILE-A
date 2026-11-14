@@ -281,6 +281,9 @@ class _MovieListScreenState extends State<MovieListScreen> {
                         )
                         ? const MovieListEmpty()
                         : MovieGrid(
+                            tmdbById: {
+                              for (final movie in vm.movies) movie.id: movie,
+                            },
                             movies: vm.movies
                                 .where(
                                   (m) => m.title.toLowerCase().contains(

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 
+import '../theme/app_colors.dart';
+
 class MovieRatingInput extends StatelessWidget {
   const MovieRatingInput({
     super.key,
@@ -13,18 +15,16 @@ class MovieRatingInput extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return RatingBar.builder(
+    return RatingBar(
       initialRating: rating,
-      minRating: 0.5,
-      allowHalfRating: true,
+      minRating: 1,
       itemCount: 5,
-      itemSize: 40,
-      itemBuilder: (context, index) {
-        return const Icon(
-          Icons.star,
-          color: Colors.amber,
-        );
-      },
+      itemSize: 36,
+      ratingWidget: RatingWidget(
+        full: const Icon(Icons.star, color: AppColors.violet),
+        half: const Icon(Icons.star_half, color: AppColors.violet),
+        empty: const Icon(Icons.star_border, color: AppColors.violet),
+      ),
       onRatingUpdate: onChanged,
     );
   }

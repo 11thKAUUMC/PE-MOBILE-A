@@ -1,3 +1,5 @@
+import 'package:movielog/data/session/learning_member_session.dart';
+
 import 'dart:async';
 import 'dart:io';
 import 'dart:ui' as ui;
@@ -349,6 +351,9 @@ void main() {
         key: key,
         child: MultiProvider(
           providers: [
+            ChangeNotifierProvider(
+              create: (_) => LearningMemberSession()..setMemberId(1),
+            ),
             Provider<RatingApiService>.value(value: routeService),
             Provider<TmdbMovieService>.value(value: Movies()),
           ],

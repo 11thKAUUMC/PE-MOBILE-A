@@ -1,3 +1,7 @@
+import '../data/models/tmdb_movie_dto.dart';
+import '../screens/movie_detail_loader.dart';
+import '../data/session/learning_member_session.dart';
+
 import 'package:flutter/material.dart';
 
 import '../data/services/rating_api_service.dart';
@@ -72,14 +76,20 @@ class AppRouter {
               GoRoute(
                 path: 'ratings',
                 parentNavigatorKey: rootNavigatorKey,
-                builder: (context, state) => ChangeNotifierProvider(
-                  create: (context) => MyRatingsViewModel(
-                    context.read<RatingApiService>(),
-                    context.read<TmdbMovieService>(),
-                    sampleMemberId,
-                  )..load(),
-                  child: const MyRatingsScreen(),
-                ),
+                builder: (context, state) {
+                  final session = context.watch<LearningMemberSession?>();
+                  final memberId = session?.memberId;
+                  if (memberId == null) return const MyRatingsScreen();
+                  return ChangeNotifierProvider(
+                    key: ValueKey(memberId),
+                    create: (context) => MyRatingsViewModel(
+                      context.read<RatingApiService>(),
+                      context.read<TmdbMovieService>(),
+                      memberId,
+                    )..load(),
+                    child: const MyRatingsScreen(),
+                  );
+                },
               ),
             ],
           ),
@@ -90,10 +100,23 @@ class AppRouter {
         builder: (context, state) {
           final movieId = int.tryParse(state.pathParameters['movieId'] ?? '');
 
-          return MovieDetailScreen(
-            movieId: movieId,
-            movie: state.extra is Movie ? state.extra as Movie : null,
-          );
+          if (movieId == null || movieId < 1) {
+            return Scaffold(
+              appBar: AppBar(),
+              body: const Center(child: Text('영화 ID가 올바르지 않습니다.')),
+            );
+          }
+          final extra = state.extra;
+          if (extra is TmdbMovieDto && extra.id == movieId) {
+            return MovieDetailScreen(
+              movieId: movieId,
+              movie: extra.toMovie(const []),
+            );
+          }
+          if (extra is Movie && extra.id == movieId) {
+            return MovieDetailScreen(movieId: movieId, movie: extra);
+          }
+          return MovieDetailLoader(key: ValueKey(movieId), movieId: movieId);
         },
       ),
     ],

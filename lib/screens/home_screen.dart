@@ -80,6 +80,7 @@ class HomeScreen extends StatelessWidget {
                   itemBuilder: (_, i) => SizedBox(
                     width: 144,
                     child: MovieCard(
+                      tmdbMovie: vm.popularMovies[i],
                       movie: vm.popularMovies[i].toMovie(const []),
                     ),
                   ),

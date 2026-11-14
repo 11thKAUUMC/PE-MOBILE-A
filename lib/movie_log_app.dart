@@ -1,5 +1,6 @@
+import 'data/session/learning_member_session.dart';
 import 'core/network/movie_log_client.dart';
-import 'data/services/member_check_service.dart';
+import 'data/services/sign_up_service.dart';
 import 'data/services/rating_api_service.dart';
 
 import 'package:dio/dio.dart';
@@ -20,12 +21,13 @@ class MovieLogApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
+        ChangeNotifierProvider(create: (_) => LearningMemberSession()),
         Provider<Dio>(
           create: (_) => createMovieLogClient(),
           dispose: (_, dio) => dio.close(),
         ),
-        Provider<MemberCheckService>(
-          create: (context) => MemberCheckService(context.read<Dio>()),
+        Provider<SignUpService>(
+          create: (context) => SignUpService(context.read<Dio>()),
         ),
         Provider<RatingApiService>(
           create: (context) => RatingApiService(context.read<Dio>()),
