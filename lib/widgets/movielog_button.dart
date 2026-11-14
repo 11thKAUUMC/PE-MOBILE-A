@@ -34,6 +34,7 @@ class MovieLogButton extends StatelessWidget {
           disabledBackgroundColor: isLoading ? AppColors.gray : disabledColor,
           disabledForegroundColor: AppColors.white,
           elevation: 0,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
           side: BorderSide.none,
           textStyle: Theme.of(context).textTheme.bodyMedium
               ?.copyWith(fontSize: 14, fontWeight: FontWeight.w700),
@@ -51,7 +52,7 @@ class MovieLogButton extends StatelessWidget {
                   color: AppColors.white,
                 ),
               )
-            : Text(label),
+            : Text(label, textAlign: TextAlign.center),
       ),
     );
   }
