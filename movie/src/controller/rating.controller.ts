@@ -9,53 +9,62 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  UseGuards,
 } from '@nestjs/common';
+import { LoginMember } from '../decorator/login-member.decorator';
+import { AuthGuard } from '../guard/auth.guard';
 import { CreateRatingDto, UpdateRatingDto } from '../dto/rating-write.dto';
 import { RatingService } from '../service/rating.service';
 
-@Controller('members')
+@Controller()
 export class RatingController {
   constructor(private readonly ratingService: RatingService) {}
 
-  @Get(':memberId/ratings')
+  @Get('members/:memberId/ratings')
   getMemberRatings(@Param('memberId', ParseIntPipe) memberId: number) {
     return this.ratingService.getRatingsByMember(memberId);
   }
 
-  @Post(':memberId/ratings')
-  async create(
-    @Param('memberId', ParseIntPipe) memberId: number,
-    @Body() dto: CreateRatingDto,
-  ) {
+  @Post('ratings')
+  @UseGuards(AuthGuard)
+  async create(@LoginMember() memberId: number, @Body() dto: CreateRatingDto) {
     return {
       isSuccess: true,
       code: 'COMMON201',
-      message: '평점 등록에 성공했습니다.',
+      message: '평점을 등록했습니다.',
       result: await this.ratingService.create(memberId, dto),
     };
   }
 
-  @Patch(':memberId/ratings/:ratingId')
+  @Patch('ratings/:ratingId')
+  @UseGuards(AuthGuard)
   async update(
-    @Param('memberId', ParseIntPipe) memberId: number,
+    @LoginMember() memberId: number,
     @Param('ratingId', ParseIntPipe) ratingId: number,
     @Body() dto: UpdateRatingDto,
   ) {
-    await this.ratingService.update(memberId, ratingId, dto);
+    const result = await this.ratingService.update(memberId, ratingId, dto);
     return {
       isSuccess: true,
       code: 'COMMON200',
-      message: '평점 수정에 성공했습니다.',
-      result: null,
+      message: '평점을 수정했습니다.',
+      result,
     };
   }
 
-  @Delete(':memberId/ratings/:ratingId')
-  @HttpCode(HttpStatus.NO_CONTENT)
+  @Delete('ratings/:ratingId')
+  @UseGuards(AuthGuard)
+  @HttpCode(HttpStatus.OK)
   async delete(
-    @Param('memberId', ParseIntPipe) memberId: number,
+    @LoginMember() memberId: number,
     @Param('ratingId', ParseIntPipe) ratingId: number,
   ) {
     await this.ratingService.delete(memberId, ratingId);
+    return {
+      isSuccess: true,
+      code: 'COMMON200',
+      message: '평점을 삭제했습니다.',
+      result: null,
+    };
   }
 }

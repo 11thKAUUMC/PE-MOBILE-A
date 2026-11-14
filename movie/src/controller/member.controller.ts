@@ -1,4 +1,15 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
+import { LoginMember } from '../decorator/login-member.decorator';
+import { MemberUpdateRequestDto } from '../dto/member-update-request.dto';
+import { AuthGuard } from '../guard/auth.guard';
 import { CreateMemberDto } from '../dto/create-member.dto';
 import { MemberService } from '../service/member.service';
 
@@ -23,6 +34,31 @@ export class MemberController {
       code: 'COMMON201',
       message: '회원가입에 성공했습니다.',
       result: await this.memberService.signUp(dto),
+    };
+  }
+
+  @Get('me')
+  @UseGuards(AuthGuard)
+  async getMyInfo(@LoginMember() memberId: number) {
+    return {
+      isSuccess: true,
+      code: 'COMMON200',
+      message: '회원 정보를 조회했습니다.',
+      result: await this.memberService.getMyInfo(memberId),
+    };
+  }
+
+  @Patch('me')
+  @UseGuards(AuthGuard)
+  async updateMyInfo(
+    @LoginMember() memberId: number,
+    @Body() dto: MemberUpdateRequestDto,
+  ) {
+    return {
+      isSuccess: true,
+      code: 'COMMON200',
+      message: '회원 정보를 수정했습니다.',
+      result: await this.memberService.updateMyInfo(memberId, dto),
     };
   }
 }

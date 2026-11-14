@@ -1,9 +1,5 @@
-import {
-  ConflictException,
-  ForbiddenException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { ApiException } from '../exception/api.exception';
+import { HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CreateRatingDto, UpdateRatingDto } from '../dto/rating-write.dto';
@@ -40,12 +36,20 @@ export class RatingService {
   async create(memberId: number, { movieId, score, comment }: CreateRatingDto) {
     const member = await this.memberRepository.findOneBy({ memberId });
     if (!member) {
-      throw new NotFoundException('존재하지 않는 유저입니다.');
+      throw new ApiException(
+        HttpStatus.NOT_FOUND,
+        'MEMBER404_1',
+        '해당 회원을 찾을 수 없습니다.',
+      );
     }
     if (
       await this.ratingRepository.existsBy({ member: { memberId }, movieId })
     ) {
-      throw new ConflictException(ratingConflict);
+      throw new ApiException(
+        HttpStatus.CONFLICT,
+        ratingConflict.code,
+        ratingConflict.message,
+      );
     }
     const rating = await this.ratingRepository.save(
       this.ratingRepository.create({
@@ -55,7 +59,7 @@ export class RatingService {
         comment: comment ?? null,
       }),
     );
-    return rating.ratingId;
+    return RatingResponseDto.from(rating);
   }
 
   async update(
@@ -63,36 +67,62 @@ export class RatingService {
     ratingId: number,
     { score, comment }: UpdateRatingDto,
   ) {
-    await this.checkOwnership(memberId, ratingId);
+    const rating = await this.findOwnedRating(memberId, ratingId);
     const result = await this.ratingRepository.update(ratingId, {
       score,
       comment: comment ?? null,
     });
     if (!result.affected) {
-      throw new NotFoundException('존재하지 않는 평점입니다.');
+      throw new ApiException(
+        HttpStatus.NOT_FOUND,
+        'RATING404_1',
+        '해당 평점을 찾을 수 없습니다.',
+      );
     }
+    const updated = await this.ratingRepository.findOneBy({
+      ratingId: rating.ratingId,
+    });
+    if (!updated) {
+      throw new ApiException(
+        HttpStatus.NOT_FOUND,
+        'RATING404_1',
+        '해당 평점을 찾을 수 없습니다.',
+      );
+    }
+    return RatingResponseDto.from(updated);
   }
 
   async delete(memberId: number, ratingId: number) {
-    await this.checkOwnership(memberId, ratingId);
+    await this.findOwnedRating(memberId, ratingId);
     const result = await this.ratingRepository.delete(ratingId);
     if (!result.affected) {
-      throw new NotFoundException('존재하지 않는 평점입니다.');
+      throw new ApiException(
+        HttpStatus.NOT_FOUND,
+        'RATING404_1',
+        '해당 평점을 찾을 수 없습니다.',
+      );
     }
   }
 
-  private async checkOwnership(memberId: number, ratingId: number) {
+  private async findOwnedRating(memberId: number, ratingId: number) {
     const rating = await this.ratingRepository.findOne({
       where: { ratingId },
       relations: { member: true },
     });
     if (!rating) {
-      throw new NotFoundException('존재하지 않는 평점입니다.');
+      throw new ApiException(
+        HttpStatus.NOT_FOUND,
+        'RATING404_1',
+        '해당 평점을 찾을 수 없습니다.',
+      );
     }
     if (Number(rating.member.memberId) !== memberId) {
-      throw new ForbiddenException(
+      throw new ApiException(
+        HttpStatus.FORBIDDEN,
+        'RATING403_1',
         '본인이 작성한 평점만 수정하거나 삭제할 수 있습니다.',
       );
     }
+    return rating;
   }
 }
