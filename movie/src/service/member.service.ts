@@ -1,6 +1,9 @@
-import { ConflictException, Injectable } from '@nestjs/common';
+import { ApiException } from '../exception/api.exception';
+import { MemberInfoResponseDto } from '../dto/member-info-response.dto';
+import { MemberUpdateRequestDto } from '../dto/member-update-request.dto';
+import { ConflictException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Not, QueryFailedError, Repository } from 'typeorm';
 import { hash } from 'bcrypt';
 import { CreateMemberDto } from '../dto/create-member.dto';
 import {
@@ -53,5 +56,48 @@ export class MemberService {
       email: saved.email,
       nickname: saved.nickname,
     };
+  }
+
+  async getMyInfo(memberId: number) {
+    const member = await this.memberRepository.findOneBy({ memberId });
+    if (!member) {
+      throw new ApiException(
+        HttpStatus.NOT_FOUND,
+        'MEMBER404_1',
+        '해당 회원을 찾을 수 없습니다.',
+      );
+    }
+    return MemberInfoResponseDto.from(member);
+  }
+
+  async updateMyInfo(memberId: number, { nickname }: MemberUpdateRequestDto) {
+    await this.getMyInfo(memberId);
+    const conflict = new ApiException(
+      HttpStatus.CONFLICT,
+      'MEMBER409_1',
+      nicknameConflict.message,
+    );
+    if (
+      await this.memberRepository.existsBy({
+        nickname,
+        memberId: Not(memberId),
+      })
+    ) {
+      throw conflict;
+    }
+
+    try {
+      await this.memberRepository.update(memberId, { nickname });
+    } catch (error) {
+      // The nickname is the only unique field changed by this query.
+      if (
+        error instanceof QueryFailedError &&
+        error.driverError.code === 'ER_DUP_ENTRY'
+      ) {
+        throw conflict;
+      }
+      throw error;
+    }
+    return this.getMyInfo(memberId);
   }
 }
