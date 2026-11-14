@@ -1,3 +1,4 @@
+import { ApiException } from '../exception/api.exception';
 import {
   ArgumentsHost,
   Catch,
@@ -19,7 +20,7 @@ export const nicknameConflict = {
 };
 
 export const ratingConflict = {
-  code: 'RATING4091',
+  code: 'RATING409_1',
   message: '이미 이 영화에 평점을 남기셨습니다.',
 };
 
@@ -44,7 +45,10 @@ export class HttpExceptionFilter implements ExceptionFilter {
       const code = typeof body === 'string' ? undefined : body.code;
       response.status(status).json({
         isSuccess: false,
-        code: code ?? 'COMMON' + status,
+        code:
+          exception instanceof ApiException
+            ? exception.code
+            : (code ?? 'COMMON' + status),
         message: Array.isArray(message) ? message[0] : message,
         result: null,
       });
