@@ -4,9 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
-import '../data/services/member_check_service.dart';
+import '../data/models/create_member_request.dart';
+import '../data/services/sign_up_service.dart';
 import '../theme/app_text_styles.dart';
+import '../view_models/learning_member_session.dart';
 import '../view_models/sign_up_view_model.dart';
+import '../view_models/submit_status.dart';
 import '../widgets/common_app_bar.dart';
 import '../widgets/movie_log_text_form_field.dart';
 import '../widgets/movielog_button.dart';
@@ -24,7 +27,7 @@ class SignUpScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
-      create: (context) => SignUpViewModel(context.read<MemberCheckService>()),
+      create: (context) => SignUpViewModel(context.read<SignUpService>()),
       child: const _SignUpView(),
     );
   }
@@ -69,6 +72,7 @@ class _SignUpViewState extends State<_SignUpView> {
   }
 
   bool _canSubmit(SignUpViewModel viewModel) {
+    if (viewModel.isSubmitting) return false;
     final localOk =
         SignUpValidators.nickname(_nicknameController.text) == null &&
         SignUpValidators.email(_emailController.text) == null &&
@@ -79,16 +83,35 @@ class _SignUpViewState extends State<_SignUpView> {
     return localOk && checkedOk && _agreedToTerms;
   }
 
-  void _submit(SignUpViewModel viewModel) {
+  Future<void> _submit(SignUpViewModel viewModel) async {
     setState(() => _submitted = true);
     final isValid = _formKey.currentState?.validate() ?? false;
     if (!isValid || !_canSubmit(viewModel)) return;
 
     FocusScope.of(context).unfocus();
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('회원가입이 완료되었습니다.')),
+    await viewModel.submit(
+      CreateMemberRequest(
+        email: _emailController.text,
+        password: _passwordController.text,
+        nickname: _nicknameController.text,
+      ),
     );
-    context.go('/home');
+    if (!mounted) return;
+
+    if (viewModel.submitStatus == SubmitStatus.success &&
+        viewModel.createdMemberId != null) {
+      context.read<LearningMemberSession>().setMemberId(
+        viewModel.createdMemberId!,
+      );
+      context.go('/movies');
+      return;
+    }
+
+    if (viewModel.snackbarMessage != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(viewModel.snackbarMessage!)),
+      );
+    }
   }
 
   @override
@@ -96,11 +119,19 @@ class _SignUpViewState extends State<_SignUpView> {
     final isWideWindow =
         MediaQuery.sizeOf(context).width >= SignUpScreen.wideBreakpoint;
 
-    return Scaffold(
-      appBar: isWideWindow
-          ? null
-          : const CommonAppBar(title: '회원가입', centerTitle: true),
-      body: SafeArea(
+    return Consumer<SignUpViewModel>(
+      builder: (context, viewModel, child) {
+        return PopScope(
+          canPop: viewModel.submitStatus != SubmitStatus.submitting,
+          child: Scaffold(
+            appBar: isWideWindow
+                ? null
+                : const CommonAppBar(title: '회원가입', centerTitle: true),
+            body: child,
+          ),
+        );
+      },
+      child: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
             final isWide = constraints.maxWidth >= SignUpScreen.wideBreakpoint;
@@ -224,11 +255,15 @@ class _SignUpViewState extends State<_SignUpView> {
                     hint: '비밀번호를 입력해주세요',
                     controller: _passwordController,
                     focusNode: _passwordFocusNode,
+                    errorText: viewModel.passwordErrorText,
                     validator: SignUpValidators.password,
                     showStatus: _showStatus(_passwordController),
                     isPassword: true,
                     textInputAction: TextInputAction.done,
-                    onChanged: (_) => _markTouched(_passwordController),
+                    onChanged: (_) {
+                      _markTouched(_passwordController);
+                      viewModel.onPasswordChanged();
+                    },
                     onFieldSubmitted: (_) => FocusScope.of(context).unfocus(),
                   ),
                   const SizedBox(height: 32),
@@ -246,6 +281,7 @@ class _SignUpViewState extends State<_SignUpView> {
                   MovieLogButton(
                     label: '가입하기',
                     width: double.infinity,
+                    isLoading: viewModel.isSubmitting,
                     onPressed: _canSubmit(viewModel)
                         ? () => _submit(viewModel)
                         : null,

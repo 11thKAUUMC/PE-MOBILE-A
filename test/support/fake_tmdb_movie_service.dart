@@ -74,7 +74,14 @@ class FakeTmdbMovieService extends TmdbMovieService {
     }
     return sampleMovies.firstWhere(
       (movie) => movie.id == movieId,
-      orElse: () => sampleMovies.first,
+      orElse: () => throw DioException(
+        requestOptions: RequestOptions(path: '/movie/$movieId'),
+        response: Response(
+          requestOptions: RequestOptions(path: '/movie/$movieId'),
+          statusCode: 404,
+        ),
+        type: DioExceptionType.badResponse,
+      ),
     );
   }
 

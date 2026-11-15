@@ -2,11 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import '../data/models/rating_dto.dart';
 import '../data/models/rating_with_movie.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
 import '../view_models/my_ratings_view_model.dart';
 import '../widgets/common_app_bar.dart';
+import '../widgets/loading_overlay.dart';
+import '../widgets/movielog_button.dart';
+import '../widgets/rating_dialog.dart';
 import '../widgets/tmdb_poster_image.dart';
 
 class MyRatingsScreen extends StatelessWidget {
@@ -14,32 +18,223 @@ class MyRatingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: CommonAppBar(
-        title: '내가 등록한 평점',
-        centerTitle: true,
-        onBack: () => context.pop(),
+    return Consumer<MyRatingsViewModel>(
+      builder: (context, viewModel, _) {
+        return PopScope(
+          canPop: !viewModel.isDeletingSelected,
+          child: Scaffold(
+            appBar: CommonAppBar(
+              title: '내가 등록한 평점',
+              centerTitle: true,
+              onBack: viewModel.isDeletingSelected
+                  ? null
+                  : () => context.pop(),
+              actions: [
+                if (viewModel.status == MyRatingsLoadStatus.success ||
+                    viewModel.status == MyRatingsLoadStatus.empty)
+                  TextButton(
+                    onPressed: viewModel.isDeletingSelected
+                        ? null
+                        : () {
+                            if (viewModel.isEditMode) {
+                              viewModel.exitEditMode();
+                            } else {
+                              viewModel.enterEditMode();
+                            }
+                          },
+                    child: Text(viewModel.isEditMode ? '취소' : '편집'),
+                  ),
+              ],
+            ),
+            body: SafeArea(
+              child: LoadingOverlay(
+                isLoading: viewModel.isDeletingSelected,
+                child: Column(
+                  children: [
+                    if (viewModel.isEditMode)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(24, 8, 24, 0),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            '${viewModel.selectedRatingIds.length}개 선택됨',
+                            style: AppTextStyles.bodySmall,
+                          ),
+                        ),
+                      ),
+                    if (viewModel.refreshWarning != null)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(24, 8, 24, 0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Text(
+                              viewModel.refreshWarning!,
+                              style: AppTextStyles.bodySmall.copyWith(
+                                color: AppColors.error,
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: viewModel.load,
+                              child: const Text('조회 다시 시도'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    Expanded(child: _buildBody(context, viewModel)),
+                    if (viewModel.isEditMode)
+                      SafeArea(
+                        top: false,
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
+                          child: MovieLogButton(
+                            label:
+                                '선택한 ${viewModel.selectedRatingIds.length}개 삭제',
+                            width: double.infinity,
+                            onPressed: viewModel.selectedRatingIds.isEmpty ||
+                                    viewModel.isDeletingSelected
+                                ? null
+                                : () => onDeleteSelectedPressed(context),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildBody(BuildContext context, MyRatingsViewModel viewModel) {
+    return switch (viewModel.status) {
+      MyRatingsLoadStatus.idle || MyRatingsLoadStatus.loading =>
+        const Center(child: CircularProgressIndicator()),
+      MyRatingsLoadStatus.empty => const _EmptyState(),
+      MyRatingsLoadStatus.error => _ErrorState(
+        message: viewModel.message ?? '평점을 불러오지 못했습니다.',
+        onRetry: viewModel.load,
       ),
-      body: SafeArea(
-        child: Consumer<MyRatingsViewModel>(
-          builder: (context, viewModel, _) {
-            return switch (viewModel.status) {
-              MyRatingsLoadStatus.idle || MyRatingsLoadStatus.loading =>
-                const Center(child: CircularProgressIndicator()),
-              MyRatingsLoadStatus.empty => const _EmptyState(),
-              MyRatingsLoadStatus.error => _ErrorState(
-                message: viewModel.message ?? '평점을 불러오지 못했습니다.',
-                onRetry: viewModel.load,
-              ),
-              MyRatingsLoadStatus.success => _SuccessState(
-                ratings: viewModel.ratings,
-                message: viewModel.message,
-              ),
-            };
-          },
+      MyRatingsLoadStatus.success => _SuccessState(
+        ratings: viewModel.ratings,
+        message: viewModel.message,
+        isEditMode: viewModel.isEditMode,
+        selectedRatingIds: viewModel.selectedRatingIds,
+      ),
+    };
+  }
+}
+
+Future<void> onEditPressed(BuildContext context, RatingDto rating) async {
+  final saved = await showDialog<bool>(
+    context: context,
+    barrierDismissible: false,
+    builder: (_) => RatingDialog(
+      initialScore: rating.score,
+      initialComment: rating.comment,
+      onSubmit: (score, comment) => context.read<MyRatingsViewModel>().updateRating(
+        ratingId: rating.ratingId,
+        score: score,
+        comment: comment,
+      ),
+    ),
+  );
+
+  if (!context.mounted || saved != true) return;
+}
+
+Future<void> onDeletePressed(BuildContext context, RatingDto rating) async {
+  final confirmed = await showDialog<bool>(
+    context: context,
+    barrierDismissible: false,
+    builder: (_) => _DeleteRatingDialog(
+      onConfirm: () =>
+          context.read<MyRatingsViewModel>().deleteRating(rating.ratingId),
+    ),
+  );
+  if (!context.mounted || confirmed != true) return;
+}
+
+Future<void> onDeleteSelectedPressed(BuildContext context) async {
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder: (_) => AlertDialog(
+      title: const Text('선택한 평점을 삭제할까요?'),
+      content: const Text('삭제한 평점은 복구할 수 없습니다.'),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, false),
+          child: const Text('취소'),
         ),
+        TextButton(
+          onPressed: () => Navigator.pop(context, true),
+          child: const Text('삭제'),
+        ),
+      ],
+    ),
+  );
+
+  if (confirmed != true || !context.mounted) return;
+
+  final viewModel = context.read<MyRatingsViewModel>();
+  await viewModel.deleteSelectedRatings();
+  if (!context.mounted) return;
+  if (viewModel.message != null && viewModel.message!.contains('삭제하지')) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(viewModel.message!)),
+    );
+  }
+}
+
+class _DeleteRatingDialog extends StatefulWidget {
+  const _DeleteRatingDialog({required this.onConfirm});
+
+  final Future<void> Function() onConfirm;
+
+  @override
+  State<_DeleteRatingDialog> createState() => _DeleteRatingDialogState();
+}
+
+class _DeleteRatingDialogState extends State<_DeleteRatingDialog> {
+  bool _isDeleting = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return PopScope(
+      canPop: !_isDeleting,
+      child: AlertDialog(
+        title: const Text('평점을 삭제할까요?'),
+        content: const Text('삭제한 평점은 복구할 수 없습니다.'),
+        actions: [
+          MovieLogButton(
+            label: '취소',
+            onPressed: _isDeleting ? null : () => Navigator.pop(context, false),
+          ),
+          MovieLogButton(
+            label: '삭제',
+            isLoading: _isDeleting,
+            onPressed: _isDeleting ? null : _onConfirm,
+          ),
+        ],
       ),
     );
+  }
+
+  Future<void> _onConfirm() async {
+    setState(() => _isDeleting = true);
+    try {
+      await widget.onConfirm();
+      if (!mounted) return;
+      Navigator.pop(context, true);
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _isDeleting = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('삭제하지 못했습니다. 잠시 후 다시 시도해 주세요.')),
+      );
+    }
   }
 }
 
@@ -92,9 +287,16 @@ class _ErrorState extends StatelessWidget {
 }
 
 class _SuccessState extends StatelessWidget {
-  const _SuccessState({required this.ratings, this.message});
+  const _SuccessState({
+    required this.ratings,
+    required this.isEditMode,
+    required this.selectedRatingIds,
+    this.message,
+  });
 
   final List<RatingWithMovie> ratings;
+  final bool isEditMode;
+  final Set<int> selectedRatingIds;
   final String? message;
 
   @override
@@ -111,16 +313,26 @@ class _SuccessState extends StatelessWidget {
           );
         }
         final entry = ratings[message == null ? index : index - 1];
-        return _RatingCard(entry: entry);
+        return _RatingCard(
+          entry: entry,
+          isEditMode: isEditMode,
+          isSelected: selectedRatingIds.contains(entry.rating.ratingId),
+        );
       },
     );
   }
 }
 
 class _RatingCard extends StatelessWidget {
-  const _RatingCard({required this.entry});
+  const _RatingCard({
+    required this.entry,
+    required this.isEditMode,
+    required this.isSelected,
+  });
 
   final RatingWithMovie entry;
+  final bool isEditMode;
+  final bool isSelected;
 
   @override
   Widget build(BuildContext context) {
@@ -172,6 +384,28 @@ class _RatingCard extends StatelessWidget {
               ],
             ),
           ),
+          if (isEditMode)
+            Checkbox(
+              value: isSelected,
+              onChanged: (_) => context
+                  .read<MyRatingsViewModel>()
+                  .toggleSelection(rating.ratingId),
+            )
+          else
+            Column(
+              children: [
+                IconButton(
+                  tooltip: '수정',
+                  onPressed: () => onEditPressed(context, rating),
+                  icon: const Icon(Icons.edit_outlined),
+                ),
+                IconButton(
+                  tooltip: '삭제',
+                  onPressed: () => onDeletePressed(context, rating),
+                  icon: const Icon(Icons.delete_outline),
+                ),
+              ],
+            ),
         ],
       ),
     );
