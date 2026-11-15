@@ -3,23 +3,46 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 
-import 'package:movielog/data/services/member_check_service.dart';
+import 'package:movielog/data/models/common_response.dart';
+import 'package:movielog/data/models/create_member_request.dart';
+import 'package:movielog/data/models/sign_up_models.dart';
+import 'package:movielog/data/services/sign_up_service.dart';
 import 'package:movielog/sign_up/sign_up_screen.dart';
 import 'package:movielog/theme/app_theme.dart';
+import 'package:movielog/view_models/learning_member_session.dart';
 
-class _FakeMemberCheckService extends MemberCheckService {
-  _FakeMemberCheckService() : super(Dio());
+class _FakeSignUpService extends SignUpService {
+  _FakeSignUpService() : super(Dio());
 
   @override
   Future<bool> checkNickname(String nickname) async => true;
 
   @override
   Future<bool> checkEmail(String email) async => true;
+
+  @override
+  Future<CommonResponse<SignUpResult>> signUp(
+    CreateMemberRequest request,
+  ) async {
+    return CommonResponse<SignUpResult>(
+      isSuccess: true,
+      code: 'CREATED',
+      message: 'ok',
+      result: SignUpResult(
+        memberId: 42,
+        email: request.email,
+        nickname: request.nickname,
+      ),
+    );
+  }
 }
 
 Widget _app({EdgeInsets viewInsets = EdgeInsets.zero}) {
-  return Provider<MemberCheckService>.value(
-    value: _FakeMemberCheckService(),
+  return MultiProvider(
+    providers: [
+      ChangeNotifierProvider(create: (_) => LearningMemberSession()),
+      Provider<SignUpService>.value(value: _FakeSignUpService()),
+    ],
     child: MaterialApp(
       theme: AppTheme.light,
       builder: (context, child) => MediaQuery(
@@ -53,7 +76,7 @@ void main() {
 
     expect(find.text('닉네임은 2자 이상이어야 합니다.'), findsOneWidget);
     expect(find.text('올바른 이메일 형식이 아닙니다.'), findsOneWidget);
-    expect(find.text('비밀번호는 8자 이상이어야 합니다.'), findsOneWidget);
+    expect(find.textContaining('특수문자를 포함한'), findsOneWidget);
     expect(_submitButton(tester).onPressed, isNull);
   });
 
@@ -63,7 +86,7 @@ void main() {
     final fields = find.byType(TextFormField);
     await tester.enterText(fields.at(0), '무비러버');
     await tester.enterText(fields.at(1), 'movie@example.com');
-    await tester.enterText(fields.at(2), 'password123');
+    await tester.enterText(fields.at(2), 'Password1!');
     await tester.pump();
     expect(_submitButton(tester).onPressed, isNull);
 
@@ -127,7 +150,7 @@ void main() {
     final fields = find.byType(TextFormField);
     await tester.enterText(fields.at(0), '무비러버');
     await tester.enterText(fields.at(1), 'movie@example.com');
-    await tester.enterText(fields.at(2), 'password123');
+    await tester.enterText(fields.at(2), 'Password1!');
     await tester.pump();
     expect(tester.takeException(), isNull);
   });

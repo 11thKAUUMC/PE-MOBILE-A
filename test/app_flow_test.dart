@@ -5,24 +5,78 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 
-import 'package:movielog/data/services/member_check_service.dart';
+import 'package:movielog/data/models/common_response.dart';
+import 'package:movielog/data/models/create_member_request.dart';
+import 'package:movielog/data/models/rating_dto.dart';
+import 'package:movielog/data/models/rating_request.dart';
+import 'package:movielog/data/models/sign_up_models.dart';
+import 'package:movielog/data/services/rating_api_service.dart';
+import 'package:movielog/data/services/sign_up_service.dart';
 import 'package:movielog/movie_log_app.dart';
 import 'package:movielog/router/app_router.dart';
+import 'package:movielog/view_models/learning_member_session.dart';
 import 'package:movielog/widgets/movie_rating_input.dart';
 
 import 'support/fake_tmdb_movie_service.dart';
 
-class _FakeMemberCheckService extends MemberCheckService {
-  _FakeMemberCheckService() : super(Dio());
+class _FakeSignUpService extends SignUpService {
+  _FakeSignUpService() : super(Dio());
 
   @override
   Future<bool> checkNickname(String nickname) async => true;
 
   @override
   Future<bool> checkEmail(String email) async => true;
+
+  @override
+  Future<CommonResponse<SignUpResult>> signUp(
+    CreateMemberRequest request,
+  ) async {
+    return CommonResponse<SignUpResult>(
+      isSuccess: true,
+      code: 'CREATED',
+      message: 'ok',
+      result: SignUpResult(
+        memberId: 42,
+        email: request.email,
+        nickname: request.nickname,
+      ),
+    );
+  }
 }
 
-Future<void> _pumpAppAt(WidgetTester tester, String location) async {
+class _FakeRatingApiService extends RatingApiService {
+  _FakeRatingApiService() : super(Dio());
+
+  @override
+  Future<List<RatingDto>> fetchMyRatings(int memberId) async => const [];
+
+  @override
+  Future<void> createRating({
+    required int memberId,
+    required CreateRatingRequest request,
+  }) async {}
+
+  @override
+  Future<void> updateRating({
+    required int memberId,
+    required int ratingId,
+    required int score,
+    String? comment,
+  }) async {}
+
+  @override
+  Future<void> deleteRating({
+    required int memberId,
+    required int ratingId,
+  }) async {}
+}
+
+Future<void> _pumpAppAt(
+  WidgetTester tester,
+  String location, {
+  LearningMemberSession? session,
+}) async {
   tester.view.physicalSize = const Size(390, 844);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
@@ -31,7 +85,9 @@ Future<void> _pumpAppAt(WidgetTester tester, String location) async {
   await tester.pumpWidget(
     MovieLogApp(
       tmdbMovieService: FakeTmdbMovieService(),
-      memberCheckService: _FakeMemberCheckService(),
+      signUpService: _FakeSignUpService(),
+      ratingApiService: _FakeRatingApiService(),
+      learningMemberSession: session,
     ),
   );
   await tester.pumpAndSettle();
@@ -43,7 +99,7 @@ void main() {
         InMemorySharedPreferencesAsync.empty();
   });
 
-  testWidgets('시작 → 회원가입 → 홈으로 이동하고 뒤로 가기가 막혀 있다', (tester) async {
+  testWidgets('시작 → 회원가입 → 영화 목록으로 이동하고 뒤로 가기가 막혀 있다', (tester) async {
     await _pumpAppAt(tester, '/start');
 
     await tester.tap(find.text('시작하기'));
@@ -55,7 +111,7 @@ void main() {
     final fields = find.byType(TextFormField);
     await tester.enterText(fields.at(0), '무비러버');
     await tester.enterText(fields.at(1), 'movie@example.com');
-    await tester.enterText(fields.at(2), 'password123');
+    await tester.enterText(fields.at(2), 'Password1!');
     await tester.tap(find.byType(Checkbox));
     await tester.pump();
     final checkButtons = find.widgetWithText(ElevatedButton, '중복 확인');
@@ -66,7 +122,7 @@ void main() {
     await tester.tap(find.text('가입하기'));
     await tester.pumpAndSettle();
 
-    expect(find.text('오늘은 어떤\n영화를 볼까요?'), findsOneWidget);
+    expect(find.byType(GridView), findsOneWidget);
     expect(AppRouter.router.canPop(), isFalse);
   });
 
@@ -186,7 +242,8 @@ void main() {
   });
 
   testWidgets('평점 Dialog는 별을 선택해야 확인 버튼이 활성화된다', (tester) async {
-    await _pumpAppAt(tester, '/home');
+    final session = LearningMemberSession()..setMemberId(42);
+    await _pumpAppAt(tester, '/home', session: session);
     await tester.tap(find.text('상세보기'));
     await tester.pumpAndSettle();
 
@@ -194,6 +251,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(MovieRatingInput), findsOneWidget);
+    expect(find.text('코멘트를 남겨보세요 (선택)'), findsOneWidget);
     ElevatedButton confirmButton() =>
         tester.widget(find.widgetWithText(ElevatedButton, '확인'));
     expect(confirmButton().onPressed, isNull);
@@ -211,37 +269,21 @@ void main() {
 
     await tester.tap(find.widgetWithText(ElevatedButton, '확인'));
     await tester.pumpAndSettle();
-    expect(find.byType(Dialog), findsNothing);
-    expect(find.textContaining('내 평점'), findsOneWidget);
+    expect(find.byType(AlertDialog), findsNothing);
+    expect(
+      find.textContaining('평점을 등록했습니다'),
+      findsOneWidget,
+    );
   });
 
-  testWidgets('평점 Dialog에서 초기화 후 다시 선택할 수 있다', (tester) async {
+  testWidgets('회원 없이 평점 남기기를 누르면 가입 안내를 보여준다', (tester) async {
     await _pumpAppAt(tester, '/home');
     await tester.tap(find.text('상세보기'));
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('평점 남기기'));
-    await tester.pumpAndSettle();
-
-    Finder stars() => find.descendant(
-      of: find.byType(MovieRatingInput),
-      matching: find.byIcon(Icons.star),
-    );
-    ElevatedButton confirmButton() =>
-        tester.widget(find.widgetWithText(ElevatedButton, '확인'));
-
-    await tester.tap(stars().at(4));
     await tester.pump();
-    expect(confirmButton().onPressed, isNotNull);
-
-    await tester.tap(find.text('초기화하고 다시 선택하기'));
-    await tester.pump();
-    expect(find.text('별을 눌러 평점을 선택해주세요'), findsOneWidget);
-    expect(confirmButton().onPressed, isNull);
-
-    await tester.tap(stars().at(1));
-    await tester.pump();
-    expect(confirmButton().onPressed, isNotNull);
+    expect(find.text('먼저 회원가입을 완료해 주세요.'), findsOneWidget);
   });
 
   for (final location in ['/home', '/movies', '/my']) {
@@ -257,7 +299,12 @@ void main() {
   testWidgets('존재하지 않는 영화 ID는 안내 문구를 보여준다', (tester) async {
     await _pumpAppAt(tester, '/movies/999');
 
-    expect(find.textContaining('영화 정보를 찾을 수 없습니다.'), findsOneWidget);
-    expect(find.textContaining('movieId: 999'), findsOneWidget);
+    expect(find.text('영화를 불러오지 못했습니다.'), findsOneWidget);
+  });
+
+  testWidgets('학습용 회원 없이 내 평점 화면에 들어가면 안내를 보여준다', (tester) async {
+    await _pumpAppAt(tester, '/my/ratings');
+
+    expect(find.text('학습용 회원가입이 필요합니다.'), findsOneWidget);
   });
 }

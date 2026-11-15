@@ -74,12 +74,16 @@ class _MovieLogTextFormFieldState extends State<MovieLogTextFormField> {
       decoration: InputDecoration(
         hintText: widget.hint,
         fillColor: hasError ? AppColors.errorContainer : null,
+        // showStatus가 켜지며 ValueKey가 바뀌어도 오류 문구가 바로 보이도록 합니다.
+        errorText: hasError ? combinedError : null,
         suffixIcon: _buildSuffix(
           hasError: hasError,
           isValid: combinedError == null && widget.showSuccessIcon,
         ),
       ),
       validator: (value) {
+        // errorText로 이미 표시 중이면 FormField 기본 오류와 중복되지 않게 합니다.
+        if (hasError) return null;
         final local = widget.validator(value);
         if (local != null) return local;
         return widget.errorText;
