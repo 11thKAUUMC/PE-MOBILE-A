@@ -1,5 +1,6 @@
 package com.umc.movie.controller;
 
+import com.umc.movie.annotation.LoginMember;
 import com.umc.movie.dto.ApiResponse;
 import com.umc.movie.dto.CreateRatingRequest;
 import com.umc.movie.dto.RatingResponse;
@@ -14,11 +15,12 @@ import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/members")
 public class RatingController {
+
     private final RatingService ratingService;
 
-    @GetMapping("/{memberId}/ratings")
+    // 5주차에 만든 유저별 평점 조회입니다. 공개 API라 토큰을 받지 않습니다.
+    @GetMapping("/members/{memberId}/ratings")
     public List<RatingResponse> getMemberRatings(
             @PathVariable Long memberId,
             @RequestParam(defaultValue = "0") int page,
@@ -27,28 +29,34 @@ public class RatingController {
         return ratingService.getRatingsByMember(memberId, page, size);
     }
 
-    @PostMapping("/{memberId}/ratings")
-    public ResponseEntity<ApiResponse<Long>> create(
-            @PathVariable Long memberId,
-            @Valid @RequestBody CreateRatingRequest request
+    // 경로에서 /members/{memberId}가 사라지고 memberId는 인터셉터가 담아둔 값을 씁니다
+    @PostMapping("/ratings")
+    public ResponseEntity<ApiResponse<RatingResponse>> create(
+            @LoginMember Long memberId,
+            @RequestBody @Valid CreateRatingRequest request
     ) {
-        Long ratingId = ratingService.create(memberId, request);
-        return ResponseEntity.status(201).body(ApiResponse.created("평점 등록에 성공했습니다.", ratingId));
+        RatingResponse response = ratingService.create(memberId, request);
+        return ResponseEntity.status(201)
+                .body(ApiResponse.created("평점을 등록했습니다.", response));
     }
 
-    @PatchMapping("/{memberId}/ratings/{ratingId}")
-    public ResponseEntity<ApiResponse<Void>> update(
-            @PathVariable Long memberId,
+    // 경로에서도 /{memberId}가 사라지고 인터셉터가 담아둔 값을 씁니다
+    @PatchMapping("/ratings/{ratingId}")
+    public ResponseEntity<ApiResponse<RatingResponse>> update(
+            @LoginMember Long memberId,
             @PathVariable Long ratingId,
-            @Valid @RequestBody UpdateRatingRequest request
+            @RequestBody @Valid UpdateRatingRequest request
     ) {
-        ratingService.update(ratingId, memberId, request);
-        return ResponseEntity.ok(ApiResponse.ok("평점 수정에 성공했습니다.", null));
+        RatingResponse response = ratingService.update(memberId, ratingId, request);
+        return ResponseEntity.ok(ApiResponse.ok("평점을 수정했습니다.", response));
     }
 
-    @DeleteMapping("/{memberId}/ratings/{ratingId}")
-    public ResponseEntity<Void> delete(@PathVariable Long memberId, @PathVariable Long ratingId) {
-        ratingService.delete(ratingId, memberId);
-        return ResponseEntity.noContent().build();
+    @DeleteMapping("/ratings/{ratingId}")
+    public ResponseEntity<ApiResponse<Void>> delete(
+            @LoginMember Long memberId,
+            @PathVariable Long ratingId
+    ) {
+        ratingService.delete(memberId, ratingId);
+        return ResponseEntity.ok(ApiResponse.ok("평점을 삭제했습니다.", null));
     }
 }
