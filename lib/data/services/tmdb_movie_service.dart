@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:movielog/data/models/tmdb_genre_dto.dart';
+import 'package:movielog/data/models/tmdb_movie_dto.dart';
 import 'package:movielog/data/models/tmdb_movie_page.dart';
 
 class TmdbMovieService {
@@ -42,5 +43,22 @@ class TmdbMovieService {
     return genres
         .map((item) => TmdbGenreDto.fromJson(item as Map<String, dynamic>))
         .toList();
+  }
+
+  Future<TmdbMovieDto> fetchMovieDetail(int movieId) async {
+    final response = await _dio.get(
+      '/movie/$movieId',
+      queryParameters: {'language': 'ko-KR'},
+    );
+    return TmdbMovieDto.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  Future<TmdbMovieDto?> findMovieById(int movieId) async {
+    try {
+      return await fetchMovieDetail(movieId);
+    } on DioException catch (error) {
+      if (error.response?.statusCode == 404) return null;
+      rethrow;
+    }
   }
 }
