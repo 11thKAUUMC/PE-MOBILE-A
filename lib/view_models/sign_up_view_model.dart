@@ -1,12 +1,12 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:movielog/data/services/member_check_service.dart';
+import 'package:movielog/data/services/sign_up_service.dart';
 
 enum CheckStatus { idle, checking, available, duplicated, error }
 
 class SignUpViewModel extends ChangeNotifier {
   SignUpViewModel(this._service);
-  final MemberCheckService _service;
+  final SignUpService _service;
 
   CheckStatus nicknameCheckStatus = CheckStatus.idle;
   String? nicknameErrorText;
