@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:movielog/data/models/rating_dto.dart';
+import 'package:movielog/widgets/rating_dialog.dart';
 import 'package:provider/provider.dart';
 
 import 'package:movielog/data/models/rating_with_movie.dart';
@@ -43,7 +45,9 @@ class MyRatingsScreen extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        viewModel.message ?? '평점을 불러오지 못했습니다.',
+                        viewModel.refreshWarning ??
+                            viewModel.message ??
+                            '평점을 불러오지 못했습니다.',
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 16),
@@ -166,6 +170,19 @@ class _RatingCard extends StatelessWidget {
               ],
             ),
           ),
+          const SizedBox(width: 8),
+          Column(
+            children: [
+              TextButton(
+                onPressed: () => onEditPressed(context, entry.rating),
+                child: const Text('수정'),
+              ),
+              TextButton(
+                onPressed: () => onDeletePressed(context, entry.rating),
+                child: const Text('삭제', style: TextStyle(color: Colors.red)),
+              ),
+            ],
+          ),
         ],
       ),
     );
@@ -177,5 +194,91 @@ class _RatingCard extends StatelessWidget {
       alignment: Alignment.center,
       child: const Icon(Icons.movie_outlined, color: Colors.white, size: 32),
     );
+  }
+}
+
+Future<void> onEditPressed(BuildContext context, RatingDto rating) async {
+  final saved = await showDialog<bool>(
+    context: context,
+    barrierDismissible: false,
+    builder: (_) => RatingDialog(
+      initialScore: rating.score,
+      initialComment: rating.comment,
+      onSubmit: (score, comment) =>
+          context.read<MyRatingsViewModel>().updateRating(
+            ratingId: rating.ratingId,
+            score: score,
+            comment: comment,
+          ),
+    ),
+  );
+
+  if (!context.mounted || saved != true) return;
+}
+
+// 평점 삭제 Dialog
+Future<void> onDeletePressed(BuildContext context, RatingDto rating) async {
+  final confirmed = await showDialog<bool>(
+    context: context,
+    barrierDismissible: false,
+    builder: (_) => _DeleteRatingDialog(
+      onConfirm: () =>
+          context.read<MyRatingsViewModel>().deleteRating(rating.ratingId),
+    ),
+  );
+  // confirmed는 실제로 삭제까지 마쳤을 때만 true입니다.
+}
+
+class _DeleteRatingDialog extends StatefulWidget {
+  const _DeleteRatingDialog({required this.onConfirm});
+
+  final Future<void> Function() onConfirm;
+
+  @override
+  State<_DeleteRatingDialog> createState() => _DeleteRatingDialogState();
+}
+
+class _DeleteRatingDialogState extends State<_DeleteRatingDialog> {
+  bool _isDeleting = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return PopScope(
+      canPop: !_isDeleting,
+      child: AlertDialog(
+        title: const Text('평점을 삭제할까요?'),
+        content: const Text('삭제한 평점은 복구할 수 없습니다.'),
+        actions: [
+          MovieLogButton(
+            label: '취소',
+            onPressed: _isDeleting ? null : () => Navigator.pop(context, false),
+          ),
+          MovieLogButton(
+            label: '삭제',
+            isLoading: _isDeleting,
+            onPressed: _isDeleting ? null : _onConfirm,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _onConfirm() async {
+    setState(() => _isDeleting = true);
+
+    try {
+      await widget.onConfirm();
+
+      if (!mounted) return;
+      Navigator.pop(context, true);
+    } catch (error) {
+      if (!mounted) return;
+
+      setState(() => _isDeleting = false);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('삭제하지 못했습니다. 잠시 후 다시 시도해 주세요.')),
+      );
+    }
   }
 }

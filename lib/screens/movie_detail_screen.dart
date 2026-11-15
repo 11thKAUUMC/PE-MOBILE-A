@@ -1,21 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:go_router/go_router.dart';
-import 'package:movielog/data/models/tmdb_movie_dto.dart';
+import 'package:provider/provider.dart';
 
-import '../data/models/tmdb_genre_dto.dart';
 import '../widgets/tmdb_poster_image.dart';
-
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
 import '../widgets/common_app_bar.dart';
 import '../widgets/rating_dialog.dart';
 
-class MovieDetailScreen extends StatefulWidget {
-  const MovieDetailScreen({super.key, required this.movieId, this.movie});
+import 'package:movielog/view_models/movie_detail_view_model.dart';
+import 'package:movielog/view_models/sign_up_view_model.dart';
 
-  final String? movieId;
-  final TmdbMovieDto? movie;
+class MovieDetailScreen extends StatefulWidget {
+  const MovieDetailScreen({super.key});
 
   @override
   State<MovieDetailScreen> createState() => _MovieDetailScreenState();
@@ -26,15 +24,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final id = int.tryParse(widget.movieId ?? '');
-    final movie = widget.movie;
-
-    if (movie == null || movie.id != id) {
-      return Scaffold(
-        appBar: CommonAppBar(title: '영화 상세', onBack: () => context.pop()),
-        body: const Center(child: Text('영화 정보를 불러올 수 없어요. 목록에서 다시 선택해 주세요.')),
-      );
-    }
+    final movie = context.read<MovieDetailViewModel>().movie;
 
     return Scaffold(
       backgroundColor: AppColors.warmWhite,
@@ -213,23 +203,34 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
                         ),
                       ),
                       onPressed: () async {
-                        final result = await showDialog<MovieRatingResult>(
+                        final saved = await showDialog<bool>(
                           context: context,
-                          builder: (_) => RatingDialog(movieId: movie.id),
+                          barrierDismissible: false,
+                          builder: (_) => RatingDialog(
+                            onSubmit: (score, comment) async {
+                              final viewModel = context
+                                  .read<MovieDetailViewModel>();
+                              await viewModel.createRating(
+                                score: score,
+                                comment: comment,
+                              );
+                              if (viewModel.submitStatus !=
+                                  SubmitStatus.success) {
+                                throw StateError(
+                                  viewModel.submitMessage ?? '저장에 실패했습니다.',
+                                );
+                              }
+                            },
+                          ),
                         );
 
-                        if (!mounted || result == null) return;
-
-                        debugPrint(
-                          '[평점 선택] movieId=${result.movieId}, score=${result.score}',
-                        );
+                        if (!context.mounted || saved != true) return;
 
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
+                          const SnackBar(
                             content: Text(
-                              '${result.score}점을 선택했습니다. 아직 서버에 저장되지는 않았습니다.',
+                              '평점이 등록했습니다. 마이페이지의 "내가 등록한 평점"에서 확인할 수 있습니다.',
                             ),
-                            behavior: SnackBarBehavior.floating,
                           ),
                         );
                       },

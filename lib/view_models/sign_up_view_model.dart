@@ -1,12 +1,54 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:movielog/data/models/create_member_request.dart';
 import 'package:movielog/data/services/sign_up_service.dart';
 
 enum CheckStatus { idle, checking, available, duplicated, error }
 
+enum SubmitStatus { idle, submitting, success, error }
+
 class SignUpViewModel extends ChangeNotifier {
   SignUpViewModel(this._service);
   final SignUpService _service;
+
+  SubmitStatus submitStatus = SubmitStatus.idle;
+  int? createdMemberId;
+  String? passwordErrorText;
+  String? snackbarMessage;
+
+  void onPasswordChanged() {
+    passwordErrorText = null;
+    notifyListeners();
+  }
+
+  Future<void> submit(CreateMemberRequest request) async {
+    if (submitStatus == SubmitStatus.submitting) return;
+    submitStatus = SubmitStatus.submitting;
+    createdMemberId = null;
+    passwordErrorText = null;
+    snackbarMessage = null;
+    notifyListeners();
+
+    try {
+      final response = await _service.signUp(request);
+      final id = response.result?.memberId;
+      if (id == null) throw StateError('회원가입 결과에 memberId가 없습니다.');
+      createdMemberId = id;
+      submitStatus = SubmitStatus.success;
+    } on DioException catch (error) {
+      submitStatus = SubmitStatus.error;
+      final message = writeSignUpErrorMessage(error);
+      if (error.response?.statusCode == 400 && message.contains('비밀번호')) {
+        passwordErrorText = message;
+      } else {
+        snackbarMessage = message;
+      }
+    } on StateError {
+      submitStatus = SubmitStatus.error;
+      snackbarMessage = '가입 결과를 확인하지 못했습니다. 새 요청 전에 서버 상태를 확인해 주세요.';
+    }
+    notifyListeners();
+  }
 
   CheckStatus nicknameCheckStatus = CheckStatus.idle;
   String? nicknameErrorText;
@@ -33,6 +75,10 @@ class SignUpViewModel extends ChangeNotifier {
     final trimmed = value.trim();
     _currentNickname = trimmed;
     _requestVersion++; // 이전 요청의 응답 무효화
+
+    passwordErrorText = null;
+    snackbarMessage = null;
+
     if (_duplicatedNickname != null && trimmed == _duplicatedNickname) {
       nicknameCheckStatus = CheckStatus.duplicated;
       nicknameErrorText = '이미 사용 중인 닉네임입니다.';
@@ -79,6 +125,9 @@ class SignUpViewModel extends ChangeNotifier {
     final trimmed = value.trim();
     _currentEmail = trimmed;
     _emailRequestVersion++;
+
+    passwordErrorText = null;
+    snackbarMessage = null;
 
     if (_duplicatedEmail != null && trimmed == _duplicatedEmail) {
       emailCheckStatus = CheckStatus.duplicated;

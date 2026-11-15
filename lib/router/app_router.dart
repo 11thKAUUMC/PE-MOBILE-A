@@ -8,8 +8,8 @@ import 'package:movielog/data/models/tmdb_movie_dto.dart';
 
 import 'package:movielog/screens/home_screen.dart';
 import 'package:movielog/screens/main_screen.dart';
+import 'package:movielog/screens/movie_detail_loader.dart';
 import 'package:movielog/screens/movie_list_screen.dart';
-import 'package:movielog/screens/movie_detail_screen.dart';
 import 'package:movielog/screens/my_page_screen.dart';
 import 'package:movielog/screens/my_ratings_screen.dart';
 import 'package:movielog/screens/register_screen.dart';
@@ -40,17 +40,6 @@ class AppRouter {
         ),
       ),
 
-      GoRoute(
-        path: '/movies/:id',
-        builder: (context, state) {
-          final extra = state.extra;
-
-          return MovieDetailScreen(
-            movieId: state.pathParameters['id'],
-            movie: extra is TmdbMovieDto ? extra : null,
-          );
-        },
-      ),
       ShellRoute(
         builder: (context, state, child) {
           final path = state.uri.path;
@@ -83,6 +72,31 @@ class AppRouter {
                         ..loadInitial(),
                   child: const MovieListScreen(),
                 ),
+            routes: [
+              GoRoute(
+                path: ':movieId',
+                builder: (context, state) {
+                  final id = int.tryParse(
+                    state.pathParameters['movieId'] ?? '',
+                  );
+
+                  if (id == null || id < 1) {
+                    return const Scaffold(
+                      body: Center(child: Text('영화 ID가 올바르지 않습니다.')),
+                    );
+                  }
+
+                  final extra = state.extra;
+
+                  return MovieDetailLoader(
+                    movieId: id,
+                    initialMovie: extra is TmdbMovieDto && extra.id == id
+                        ? extra
+                        : null,
+                  );
+                },
+              ),
+            ],
           ),
 
           GoRoute(
@@ -110,7 +124,7 @@ class AppRouter {
                     create: (context) => MyRatingsViewModel(
                       context.read<RatingApiService>(),
                       context.read<TmdbMovieService>(),
-                      sampleMemberId,
+                      id,
                     )..load(),
                     child: const MyRatingsScreen(),
                   );
