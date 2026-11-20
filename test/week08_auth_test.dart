@@ -157,6 +157,33 @@ void main() {
     expect(auth.consumeSessionExpired(), isFalse);
   });
 
+  test('내 정보 로딩 실패 뒤 세션을 유지하고 다시 조회한다', () async {
+    final gate = Completer<ResponseBody>();
+    var first = true;
+    init(
+      protected: (_) {
+        if (first) {
+          first = false;
+          return gate.future;
+        }
+        return reply(200, 'COMMON200', member);
+      },
+    );
+    await auth.restoreSession();
+    expect(await auth.login(login), isTrue);
+    final loading = auth.loadMember();
+    expect(auth.memberStatus, MemberLoadStatus.loading);
+    gate.complete(reply(503, 'COMMON503'));
+    await loading;
+    expect(auth.memberStatus, MemberLoadStatus.error);
+    expect(auth.status, AuthStatus.signedIn);
+    expect(storage.deletions, 0);
+    expect(storage.token, isNotNull);
+    await auth.loadMember(force: true);
+    expect(auth.memberStatus, MemberLoadStatus.success);
+    expect(auth.member?.email, 'fixture@example.com');
+  });
+
   test('공개 로그인 401은 입력 오류로 남기고 저장소를 지우지 않는다', () async {
     init(loginStatus: 401, protected: (_) => throw StateError('unexpected'));
     await auth.restoreSession();
