@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 class EditProfileButton extends StatelessWidget {
-  const EditProfileButton({super.key});
+  const EditProfileButton({super.key, required this.onPressed});
+
+  final VoidCallback onPressed;
 
   @override
   Widget build(BuildContext context) {
@@ -11,7 +13,7 @@ class EditProfileButton extends StatelessWidget {
       width: 129,
       height: 41,
       child: TextButton(
-        onPressed: () {},
+        onPressed: onPressed,
         style: TextButton.styleFrom(
           foregroundColor: colors.primary,
           textStyle: Theme.of(context).textTheme.bodyMedium

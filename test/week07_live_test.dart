@@ -5,15 +5,16 @@ import 'package:movielog/core/network/movie_log_client.dart';
 import 'package:movielog/data/models/common_response.dart';
 import 'package:movielog/data/models/rating_request.dart';
 import 'package:movielog/data/models/sign_up_models.dart';
-import 'package:movielog/data/services/rating_api_service.dart';
 import 'package:movielog/data/services/sign_up_service.dart';
+
+import 'support/week07_rating_api.dart';
 
 void main() {
   test('v6 실서버에서 신규 학습용 회원의 평점 CRUD를 확인한다', () async {
     final dio = createMovieLogClient();
     addTearDown(dio.close);
     final signUp = SignUpService(dio);
-    final ratings = RatingApiService(dio);
+    final ratings = Week07RatingApi(dio);
     final suffix = DateTime.now().microsecondsSinceEpoch.toRadixString(36);
     final nickname = 'w7$suffix';
     final email = '$nickname@example.com';

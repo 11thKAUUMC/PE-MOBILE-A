@@ -55,7 +55,7 @@ class _RatingDialogState extends State<RatingDialog> {
       final onError = widget.onError;
       setState(() {
         _busy = false;
-        _error = onError == null ? message : null;
+        _error = message;
       });
       onError?.call(message);
     }
