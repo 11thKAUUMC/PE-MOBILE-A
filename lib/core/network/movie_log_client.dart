@@ -1,11 +1,16 @@
 import 'package:dio/dio.dart';
 
-Dio createMovieLogClient() {
-  return Dio(
+import 'auth_interceptor.dart';
+
+Dio createMovieLogClient({AuthInterceptor? auth}) {
+  final dio = Dio(
     BaseOptions(
-      baseUrl: 'https://workbook.devnoco.com',
+      baseUrl: movieLogOrigin,
       connectTimeout: const Duration(seconds: 10),
       receiveTimeout: const Duration(seconds: 10),
+      followRedirects: false,
     ),
   );
+  if (auth != null) dio.interceptors.add(auth);
+  return dio;
 }

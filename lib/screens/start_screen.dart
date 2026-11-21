@@ -2,14 +2,27 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../theme/week06_style.dart';
+import '../widgets/movielog_button.dart';
+
 class StartScreen extends StatelessWidget {
-  const StartScreen({super.key});
+  const StartScreen({
+    super.key,
+    this.sessionCheck = false,
+    this.message,
+    this.onRetry,
+  });
+
+  final bool sessionCheck;
+  final String? message;
+  final VoidCallback? onRetry;
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     return Scaffold(
+      backgroundColor: Week06Style.background,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(32),
@@ -19,7 +32,7 @@ class StartScreen extends StatelessWidget {
               Column(
                 children: [
                   const SizedBox(height: 32),
-                  const Text('FLUTTER 1주차'),
+                  Text(sessionCheck ? 'FLUTTER 8주차' : 'FLUTTER 1주차'),
                   const SizedBox(height: 64),
                   SvgPicture.asset(
                     'assets/logos/movielog_logo.svg',
@@ -42,20 +55,36 @@ class StartScreen extends StatelessWidget {
                   ),
                 ],
               ),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    context.go('/signup');
-                  }, // 1주차에는 화면 이동을 연결하지 않습니다.
-                  style: ElevatedButton.styleFrom(
-                    minimumSize: const Size(0, 48),
-                    backgroundColor: colors.primary,
-                    foregroundColor: colors.onPrimary,
+              if (sessionCheck)
+                if (onRetry == null)
+                  const CircularProgressIndicator(strokeWidth: 2)
+                else
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        message ?? '로그인 상태를 확인하지 못했어요.',
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 24),
+                      MovieLogButton(label: '다시 시도', onPressed: onRetry),
+                    ],
+                  )
+              else
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      context.go('/register');
+                    },
+                    style: ElevatedButton.styleFrom(
+                      minimumSize: const Size(0, 48),
+                      backgroundColor: colors.primary,
+                      foregroundColor: colors.onPrimary,
+                    ),
+                    child: const Text('시작하기'),
                   ),
-                  child: const Text('시작하기'),
                 ),
-              ),
             ],
           ),
         ),

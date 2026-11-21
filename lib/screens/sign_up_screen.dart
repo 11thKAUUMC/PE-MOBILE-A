@@ -9,7 +9,6 @@ import '../widgets/movielog_button.dart';
 import '../view_models/sign_up_view_model.dart';
 import '../data/services/sign_up_service.dart';
 import '../data/models/sign_up_models.dart';
-import '../data/session/learning_member_session.dart';
 
 import 'package:provider/provider.dart';
 
@@ -217,8 +216,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
     );
     if (!mounted) return;
     if (result != null) {
-      context.read<LearningMemberSession>().setMemberId(result.memberId);
-      context.go('/movies');
+      _passwordController.clear();
+      context.go('/login');
     } else if (_viewModel.snackbarMessage case final message?) {
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text(message)));
@@ -241,7 +240,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
               if (context.canPop()) {
                 context.pop();
               } else {
-                context.go('/start');
+                context.go('/login');
               }
             },
           ),

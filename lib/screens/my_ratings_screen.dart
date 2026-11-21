@@ -7,6 +7,7 @@ import '../data/models/rating_with_movie.dart';
 import '../theme/app_colors.dart';
 import '../theme/week06_style.dart';
 import '../view_models/my_ratings_view_model.dart';
+import '../view_models/auth_view_model.dart';
 import '../widgets/movielog_button.dart';
 import '../widgets/rating_dialog.dart';
 import '../widgets/tmdb_poster_image.dart';
@@ -36,6 +37,8 @@ class _MyRatingsScreenState extends State<MyRatingsScreen> {
 
   Future<void> _edit(MyRatingsViewModel vm, RatingWithMovie entry) async {
     final rating = entry.rating;
+    final auth = context.read<AuthViewModel>();
+    final version = auth.sessionVersion;
     final score = await showDialog<int>(
       context: context,
       barrierDismissible: false,
@@ -44,26 +47,44 @@ class _MyRatingsScreenState extends State<MyRatingsScreen> {
         initialScore: rating.score,
         initialComment: rating.comment,
         onSubmit: (input) => vm.updateRating(rating.ratingId, input),
+        onError: (message) {
+          if (auth.isSignedIn(version)) _notice(message);
+        },
       ),
     );
-    if (score != null) _notice(vm.refreshWarning ?? '평점을 수정했습니다.');
+    if (score != null && auth.isSignedIn(version)) _notice('평점을 수정했습니다.');
   }
 
   Future<void> _delete(MyRatingsViewModel vm, int id) async {
-    final confirmed = await _confirmDelete(onDelete: () => vm.deleteRating(id));
-    if (confirmed == true) _notice(vm.refreshWarning ?? '평점을 삭제했습니다.');
+    final auth = context.read<AuthViewModel>();
+    final version = auth.sessionVersion;
+    final confirmed = await _confirmDelete(
+      onDelete: () => vm.deleteRating(id),
+      onError: (message) {
+        if (auth.isSignedIn(version)) _notice(message);
+      },
+    );
+    if (confirmed == true && auth.isSignedIn(version)) _notice('평점을 삭제했습니다.');
   }
 
   Future<void> _deleteSelected(MyRatingsViewModel vm) async {
     final ids = Set<int>.of(_selected);
-    if (vm.refreshWarning != null ||
-        ids.isEmpty ||
+    final auth = context.read<AuthViewModel>();
+    final version = auth.sessionVersion;
+    if (ids.isEmpty ||
         await _confirmDelete(count: ids.length) != true ||
         !mounted) {
       return;
     }
-    final failures = await vm.deleteSelected(ids);
-    if (!mounted) return;
+    if (!auth.isSignedIn(version)) return;
+    List<int> failures;
+    try {
+      failures = await vm.deleteSelected(ids);
+    } on MovieLogException catch (error) {
+      if (auth.isSignedIn(version)) _notice(error.message);
+      return;
+    }
+    if (!mounted || !auth.isSignedIn(version)) return;
     setState(() {
       _selected
         ..clear()
@@ -72,7 +93,7 @@ class _MyRatingsScreenState extends State<MyRatingsScreen> {
     });
     _notice(
       failures.isEmpty
-          ? vm.refreshWarning ?? '평점을 삭제했습니다.'
+          ? '평점을 삭제했습니다.'
           : '선택한 ${ids.length}개 중 ${failures.length}개를 삭제하지 못했습니다.',
     );
   }
@@ -80,17 +101,19 @@ class _MyRatingsScreenState extends State<MyRatingsScreen> {
   Future<bool?> _confirmDelete({
     int? count,
     Future<void> Function()? onDelete,
+    ValueChanged<String>? onError,
   }) => showDialog<bool>(
     context: context,
     barrierDismissible: false,
     barrierColor: Colors.black.withValues(alpha: .30),
-    builder: (_) => _DeleteDialog(count: count, onDelete: onDelete),
+    builder: (_) =>
+        _DeleteDialog(count: count, onDelete: onDelete, onError: onError),
   );
 
   @override
   Widget build(BuildContext context) {
-    final vm = context.watch<MyRatingsViewModel?>();
-    final blocked = vm?.isWriting ?? false;
+    final vm = context.watch<MyRatingsViewModel>();
+    final blocked = vm.isWriting;
     return PopScope(
       canPop: !blocked,
       child: Stack(
@@ -122,22 +145,8 @@ class _MyRatingsScreenState extends State<MyRatingsScreen> {
                       },
               ),
             ),
-            body: vm == null
-                ? Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Text('회원가입 후 평점을 조회할 수 있습니다.'),
-                        const SizedBox(height: 12),
-                        MovieLogButton(
-                          label: '회원가입',
-                          onPressed: () => context.push('/signup'),
-                        ),
-                      ],
-                    ),
-                  )
-                : _body(vm),
-            bottomNavigationBar: vm == null || !_selecting
+            body: _body(vm),
+            bottomNavigationBar: !_selecting
                 ? null
                 : SafeArea(
                     minimum: const EdgeInsets.fromLTRB(24, 8, 24, 74),
@@ -145,16 +154,13 @@ class _MyRatingsScreenState extends State<MyRatingsScreen> {
                       label: '선택한 ${_selected.length}개 삭제',
                       radius: 25,
                       width: double.infinity,
-                      onPressed:
-                          _selected.isEmpty ||
-                              blocked ||
-                              vm.refreshWarning != null
+                      onPressed: _selected.isEmpty || blocked
                           ? null
                           : () => _deleteSelected(vm),
                     ),
                   ),
           ),
-          if (vm?.isDeletingSelected ?? false)
+          if (vm.isDeletingSelected)
             const Positioned.fill(
               child: Stack(
                 children: [
@@ -178,71 +184,46 @@ class _MyRatingsScreenState extends State<MyRatingsScreen> {
   }
 
   Widget _body(MyRatingsViewModel vm) {
-    if ((vm.status == MyRatingsLoadStatus.loading ||
-            vm.status == MyRatingsLoadStatus.idle) &&
-        !vm.isDeletingSelected) {
-      return const Center(child: CircularProgressIndicator());
-    }
-    return RefreshIndicator(
-      onRefresh: vm.load,
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(19, 15, 19, 24),
-        physics: const AlwaysScrollableScrollPhysics(),
-        children: [
-          if (vm.status == MyRatingsLoadStatus.error &&
-              !vm.isDeletingSelected) ...[
-            Text(vm.refreshWarning ?? vm.message ?? '평점을 불러오지 못했습니다.'),
-            const SizedBox(height: 12),
-            Center(
-              child: MovieLogButton(
-                label: '다시 시도',
-                width: 120,
-                onPressed: vm.isWriting ? null : vm.load,
-              ),
-            ),
-          ],
-          if (vm.status == MyRatingsLoadStatus.empty)
-            const Padding(
-              padding: EdgeInsets.only(top: 18),
-              child: Center(child: Text('아직 등록한 평점이 없습니다.')),
-            ),
-          if (vm.ratings.isNotEmpty &&
-              (vm.status == MyRatingsLoadStatus.success ||
-                  vm.isDeletingSelected ||
-                  vm.refreshWarning != null)) ...[
-            Padding(
-              padding: const EdgeInsets.only(left: 5, right: 12, bottom: 5),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      _selecting ? '${_selected.length}개 선택됨' : '',
-                      style: Week06Style.text(
-                        14,
-                        color: AppColors.violet,
-                        weight: FontWeight.w700,
-                      ),
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(19, 15, 19, 24),
+      children: [
+        const Text('이번 로그인에서 등록한 평점을 표시합니다.'),
+        const SizedBox(height: 12),
+        if (vm.ratings.isEmpty)
+          const Center(child: Text('이번 로그인에서 등록한 평점이 없어요.')),
+        if (vm.ratings.isNotEmpty) ...[
+          Padding(
+            padding: const EdgeInsets.only(left: 5, right: 12, bottom: 5),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    _selecting ? '${_selected.length}개 선택됨' : '',
+                    style: Week06Style.text(
+                      14,
+                      color: AppColors.violet,
+                      weight: FontWeight.w700,
                     ),
                   ),
-                  TextButton(
-                    onPressed: vm.isWriting
-                        ? null
-                        : () => setState(() {
-                            _selecting = !_selecting;
-                            _selected.clear();
-                          }),
-                    child: Text(
-                      _selecting ? '취소' : '편집',
-                      style: const TextStyle(fontWeight: FontWeight.w700),
-                    ),
+                ),
+                TextButton(
+                  onPressed: vm.isWriting
+                      ? null
+                      : () => setState(() {
+                          _selecting = !_selecting;
+                          _selected.clear();
+                        }),
+                  child: Text(
+                    _selecting ? '취소' : '편집',
+                    style: const TextStyle(fontWeight: FontWeight.w700),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-            for (final entry in vm.ratings) _card(vm, entry),
-          ],
+          ),
+          for (final entry in vm.ratings) _card(vm, entry),
         ],
-      ),
+      ],
     );
   }
 
@@ -331,9 +312,7 @@ class _MyRatingsScreenState extends State<MyRatingsScreen> {
                 _softButton(
                   context,
                   '수정',
-                  vm.isWriting || vm.refreshWarning != null
-                      ? null
-                      : () => _edit(vm, entry),
+                  vm.isWriting ? null : () => _edit(vm, entry),
                   width: 63,
                   height: 35,
                 ),
@@ -341,9 +320,7 @@ class _MyRatingsScreenState extends State<MyRatingsScreen> {
                 _softButton(
                   context,
                   '삭제',
-                  vm.isWriting || vm.refreshWarning != null
-                      ? null
-                      : () => _delete(vm, rating.ratingId),
+                  vm.isWriting ? null : () => _delete(vm, rating.ratingId),
                   width: 63,
                   height: 35,
                   danger: true,
@@ -392,9 +369,14 @@ Widget _softButton(
 );
 
 class _DeleteDialog extends StatefulWidget {
-  const _DeleteDialog({required this.count, required this.onDelete});
+  const _DeleteDialog({
+    required this.count,
+    required this.onDelete,
+    this.onError,
+  });
   final int? count;
   final Future<void> Function()? onDelete;
+  final ValueChanged<String>? onError;
 
   @override
   State<_DeleteDialog> createState() => _DeleteDialogState();
@@ -420,10 +402,14 @@ class _DeleteDialogState extends State<_DeleteDialog> {
       if (mounted) Navigator.pop(context, true);
     } catch (error) {
       if (!mounted) return;
+      final message = error is MovieLogException
+          ? error.message
+          : '평점을 삭제하지 못했습니다.';
       setState(() {
         _busy = false;
-        _error = error is MovieLogException ? error.message : '평점을 삭제하지 못했습니다.';
+        _error = message;
       });
+      widget.onError?.call(message);
     }
   }
 

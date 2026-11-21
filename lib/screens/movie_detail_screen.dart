@@ -1,8 +1,8 @@
 import 'package:provider/provider.dart';
 
-import '../data/services/rating_api_service.dart';
-import '../data/session/learning_member_session.dart';
-import '../view_models/movie_detail_view_model.dart';
+import '../data/models/tmdb_movie_dto.dart';
+import '../view_models/my_ratings_view_model.dart';
+import '../view_models/auth_view_model.dart';
 import '../models/movie.dart';
 import '../widgets/tmdb_poster_image.dart';
 
@@ -25,43 +25,27 @@ class MovieDetailScreen extends StatefulWidget {
 }
 
 class _MovieDetailScreenState extends State<MovieDetailScreen> {
-  double? myRating;
   bool isFavorite = false;
 
   Future<void> _rateMovie() async {
-    final memberId = context.read<LearningMemberSession?>()?.memberId;
     final movie = widget.movie;
-    if (memberId == null || movie == null || !movie.isTmdb) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            memberId == null
-                ? '회원가입 후 평점을 등록할 수 있습니다.'
-                : 'TMDB 영화에서 평점을 등록해 주세요.',
-          ),
-          action: memberId == null
-              ? SnackBarAction(
-                  label: '회원가입',
-                  onPressed: () => context.push('/signup'),
-                )
-              : null,
-        ),
-      );
-      return;
-    }
-    final vm = MovieDetailViewModel(
-      context.read<RatingApiService>(),
-      movie.id,
-      memberId,
+    if (movie == null || !movie.isTmdb) return;
+    final auth = context.read<AuthViewModel>();
+    final version = auth.sessionVersion;
+    final vm = context.read<MyRatingsViewModel>();
+    final ratingMovie = TmdbMovieDto(
+      id: movie.id,
+      title: movie.title,
+      posterPath: movie.posterPath,
     );
     final rating = await showDialog<int>(
       context: context,
       barrierDismissible: false,
       barrierColor: Colors.black.withValues(alpha: .30),
       builder: (_) => RatingDialog(
-        onSubmit: vm.createRating,
+        onSubmit: (input) => vm.createRating(ratingMovie, input),
         onError: (message) {
-          if (!mounted) return;
+          if (!mounted || !auth.isSignedIn(version)) return;
           ScaffoldMessenger.of(context)
             ..clearSnackBars()
             ..showSnackBar(SnackBar(content: Text(message)));
@@ -69,8 +53,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
       ),
     );
 
-    if (!mounted || rating == null) return;
-    setState(() => myRating = rating.toDouble());
+    if (!mounted || rating == null || !auth.isSignedIn(version)) return;
     ScaffoldMessenger.of(context).clearSnackBars();
     ScaffoldMessenger.of(context)
         .showSnackBar(const SnackBar(content: Text('평점을 등록했습니다.')));
@@ -79,7 +62,8 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final movie = widget.movie ?? findMovieById(widget.movieId);
-    final memberId = context.watch<LearningMemberSession?>()?.memberId;
+    final ratings = context.watch<MyRatingsViewModel?>();
+    final myRating = ratings?.forMovie(movie?.id ?? 0)?.score;
 
     if (movie == null) {
       return const Scaffold(body: Center(child: Text('영화를 찾을 수 없습니다.')));
@@ -88,7 +72,8 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          onPressed: () => context.pop(),
+          onPressed: () =>
+              context.canPop() ? context.pop() : context.go('/movies'),
           icon: const Icon(Icons.arrow_back, color: AppColors.violet),
         ),
         title: const Text(
@@ -186,7 +171,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
                   if (myRating != null) ...[
                     const SizedBox(height: 24),
                     Text(
-                      '내 평점 ${myRating!.toStringAsFixed(1)}',
+                      '내 평점 ${myRating.toStringAsFixed(1)}',
                       style: const TextStyle(
                         color: AppColors.violet,
                         fontSize: 17,
@@ -227,16 +212,14 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: memberId == null
-                    ? TextButton(
-                        onPressed: () => context.push('/signup'),
-                        child: const Text('평점을 남기려면 회원가입'),
-                      )
-                    : ElevatedButton.icon(
-                        onPressed: movie.isTmdb ? _rateMovie : null,
-                        icon: const Icon(Icons.rate_review_outlined),
-                        label: const Text('평점 남기기'),
-                      ),
+                child: ElevatedButton.icon(
+                  onPressed:
+                      movie.isTmdb && ratings != null && !ratings.isWriting
+                      ? _rateMovie
+                      : null,
+                  icon: const Icon(Icons.rate_review_outlined),
+                  label: const Text('평점 남기기'),
+                ),
               ),
             ],
           ),
