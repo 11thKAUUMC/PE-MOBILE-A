@@ -61,7 +61,7 @@ export class FavoriteService {
       where: { member: { memberId } },
       order: { favoriteId: 'DESC' },
     });
-    return favorites.map(FavoriteResponseDto.from);
+    return favorites.map((favorite) => FavoriteResponseDto.from(favorite));
   }
 
   async getStatus(

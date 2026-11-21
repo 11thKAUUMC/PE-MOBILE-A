@@ -54,7 +54,7 @@ export class RatingService {
       order: { ratingId: 'DESC' },
     });
 
-    return ratings.map(RatingResponseDto.from);
+    return ratings.map((rating) => RatingResponseDto.from(rating));
   }
 
   async create(memberId: number, dto: CreateRatingDto) {
