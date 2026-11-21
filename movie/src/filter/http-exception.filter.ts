@@ -24,11 +24,17 @@ export const ratingConflict = {
   message: '이미 이 영화에 평점을 남기셨습니다.',
 };
 
+export const favoriteConflict = {
+  code: 'FAVORITE409_1',
+  message: '이미 이 영화를 즐겨찾기하셨습니다.',
+};
+
 const duplicateKeys: ReadonlyMap<string, { code: string; message: string }> =
   new Map([
     ['email', emailConflict],
     ['nickname', nicknameConflict],
     ['uk_rating_member_movie', ratingConflict],
+    ['uk_favorite_member_movie', favoriteConflict],
   ]);
 
 @Catch()
