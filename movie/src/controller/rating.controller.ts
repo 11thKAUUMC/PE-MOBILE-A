@@ -11,6 +11,7 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
+import { ApiBearerAuth } from '@nestjs/swagger';
 import { LoginMember } from '../decorator/login-member.decorator';
 import { AuthGuard } from '../guard/auth.guard';
 import { CreateRatingDto, UpdateRatingDto } from '../dto/rating-write.dto';
@@ -27,6 +28,7 @@ export class RatingController {
 
   @Post('ratings')
   @UseGuards(AuthGuard)
+  @ApiBearerAuth()
   async create(@LoginMember() memberId: number, @Body() dto: CreateRatingDto) {
     return {
       isSuccess: true,
@@ -38,6 +40,7 @@ export class RatingController {
 
   @Patch('ratings/:ratingId')
   @UseGuards(AuthGuard)
+  @ApiBearerAuth()
   async update(
     @LoginMember() memberId: number,
     @Param('ratingId', ParseIntPipe) ratingId: number,
@@ -54,6 +57,7 @@ export class RatingController {
 
   @Delete('ratings/:ratingId')
   @UseGuards(AuthGuard)
+  @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
   async delete(
     @LoginMember() memberId: number,

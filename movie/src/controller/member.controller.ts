@@ -7,6 +7,7 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
+import { ApiBearerAuth } from '@nestjs/swagger';
 import { LoginMember } from '../decorator/login-member.decorator';
 import { MemberUpdateRequestDto } from '../dto/member-update-request.dto';
 import { AuthGuard } from '../guard/auth.guard';
@@ -39,6 +40,7 @@ export class MemberController {
 
   @Get('me')
   @UseGuards(AuthGuard)
+  @ApiBearerAuth()
   async getMyInfo(@LoginMember() memberId: number) {
     return {
       isSuccess: true,
@@ -50,6 +52,7 @@ export class MemberController {
 
   @Patch('me')
   @UseGuards(AuthGuard)
+  @ApiBearerAuth()
   async updateMyInfo(
     @LoginMember() memberId: number,
     @Body() dto: MemberUpdateRequestDto,
