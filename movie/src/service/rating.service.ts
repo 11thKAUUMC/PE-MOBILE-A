@@ -8,6 +8,30 @@ import { Rating } from '../entity/rating.entity';
 import { Member } from '../entity/member.entity';
 import { RatingResponseDto } from '../dto/rating-response.dto';
 
+export async function saveRating(
+  repository: Repository<Rating>,
+  member: Member,
+  { movieId, score, comment }: CreateRatingDto,
+): Promise<RatingResponseDto> {
+  if (
+    await repository.existsBy({
+      member: { memberId: member.memberId },
+      movieId,
+    })
+  ) {
+    throw new ApiException(
+      HttpStatus.CONFLICT,
+      ratingConflict.code,
+      ratingConflict.message,
+    );
+  }
+
+  const rating = await repository.save(
+    repository.create({ member, movieId, score, comment: comment ?? null }),
+  );
+  return RatingResponseDto.from(rating);
+}
+
 @Injectable()
 export class RatingService {
   constructor(
@@ -33,7 +57,7 @@ export class RatingService {
     return ratings.map(RatingResponseDto.from);
   }
 
-  async create(memberId: number, { movieId, score, comment }: CreateRatingDto) {
+  async create(memberId: number, dto: CreateRatingDto) {
     const member = await this.memberRepository.findOneBy({ memberId });
     if (!member) {
       throw new ApiException(
@@ -42,24 +66,7 @@ export class RatingService {
         '해당 회원을 찾을 수 없습니다.',
       );
     }
-    if (
-      await this.ratingRepository.existsBy({ member: { memberId }, movieId })
-    ) {
-      throw new ApiException(
-        HttpStatus.CONFLICT,
-        ratingConflict.code,
-        ratingConflict.message,
-      );
-    }
-    const rating = await this.ratingRepository.save(
-      this.ratingRepository.create({
-        member,
-        movieId,
-        score,
-        comment: comment ?? null,
-      }),
-    );
-    return RatingResponseDto.from(rating);
+    return saveRating(this.ratingRepository, member, dto);
   }
 
   async update(
