@@ -1,0 +1,5 @@
+같은 회원이 영화 155를 동시에 12회 즐겨찾기 등록
+HTTP 201 × 1, HTTP 409 FAVORITE409_1 × 11, favorite 1행
+직접 중복 INSERT · ER_DUP_ENTRY / uk_favorite_member_movie
+영화 155 기록 실패 · HTTP 409 FAVORITE409_1 · rating 0행, 기존 favorite 1행
+영화 238 두 번 기록 · HTTP 201 → 409 RATING409_1 · rating 1행, favorite 1행

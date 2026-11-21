@@ -1,0 +1,211 @@
+Running your collection...
+postman
+
+MovieLog · 8주차 BE
+
+Root 회원 A 가입
+
+  POST http://127.0.0.1:3088/members [201 Created, 481 B, 134 ms]
+  Pass  HTTP 201
+  Pass  COMMON201
+
+Root 회원 A 로그인
+
+  POST http://127.0.0.1:3088/auth/login [200 OK, 633 B, 89 ms]
+  Pass  HTTP 200
+  Pass  COMMON200
+
+Root 회원 B 가입
+
+  POST http://127.0.0.1:3088/members [201 Created, 481 B, 97 ms]
+  Pass  HTTP 201
+  Pass  COMMON201
+
+Root 회원 B 로그인
+
+  POST http://127.0.0.1:3088/auth/login [200 OK, 633 B, 85 ms]
+  Pass  HTTP 200
+  Pass  COMMON200
+
+Root 01 토큰 없이 즐겨찾기 등록
+
+  POST http://127.0.0.1:3088/favorites [401 Unauthorized, 416 B, 2 ms]
+  Pass  HTTP 401
+  Pass  AUTH401_2
+
+Root 02 내 즐겨찾기 빈 목록
+
+  GET http://127.0.0.1:3088/favorites [200 OK, 406 B, 20 ms]
+  Pass  HTTP 200
+  Pass  COMMON200
+  Pass  빈 배열
+
+Root 03 등록 전 즐겨찾기 여부
+
+  GET http://127.0.0.1:3088/favorites/550 [200 OK, 424 B, 5 ms]
+  Pass  HTTP 200
+  Pass  COMMON200
+  Pass  isFavorite false
+
+Root 04 영화 ID 0 입력 차단
+
+  POST http://127.0.0.1:3088/favorites [400 Bad Request, 412 B, 3 ms]
+  Pass  HTTP 400
+  Pass  COMMON400
+
+Root 05 회원 ID 본문 입력 차단
+
+  POST http://127.0.0.1:3088/favorites [400 Bad Request, 409 B, 2 ms]
+  Pass  HTTP 400
+  Pass  COMMON400
+
+Root 06 즐겨찾기 등록
+
+  POST http://127.0.0.1:3088/favorites [201 Created, 471 B, 13 ms]
+  Pass  HTTP 201
+  Pass  COMMON201
+  Pass  favoriteId, movieId, createdAt 반환
+
+Root 07 즐겨찾기 중복 등록
+
+  POST http://127.0.0.1:3088/favorites [409 Conflict, 426 B, 5 ms]
+  Pass  HTTP 409
+  Pass  FAVORITE409_1
+  Pass  실패 결과 null
+
+Root 08 등록 후 즐겨찾기 여부
+
+  GET http://127.0.0.1:3088/favorites/550 [200 OK, 423 B, 3 ms]
+  Pass  HTTP 200
+  Pass  COMMON200
+  Pass  isFavorite true
+
+Root 09 두 번째 영화 즐겨찾기 등록
+
+  POST http://127.0.0.1:3088/favorites [201 Created, 471 B, 8 ms]
+  Pass  HTTP 201
+  Pass  COMMON201
+
+Root 10 내 즐겨찾기 최신순 조회
+
+  GET http://127.0.0.1:3088/favorites [200 OK, 545 B, 4 ms]
+  Pass  HTTP 200
+  Pass  COMMON200
+  Pass  최신 등록 영화가 먼저 표시됨
+
+Root 11 다른 회원에게는 빈 목록
+
+  GET http://127.0.0.1:3088/favorites [200 OK, 406 B, 2 ms]
+  Pass  HTTP 200
+  Pass  COMMON200
+  Pass  회원 A 목록 격리
+
+Root 12 다른 회원의 즐겨찾기 해제 차단
+
+  DELETE http://127.0.0.1:3088/favorites/550 [404 Not Found, 428 B, 4 ms]
+  Pass  HTTP 404
+  Pass  FAVORITE404_1
+
+Root 13 다른 회원은 같은 영화 등록 가능
+
+  POST http://127.0.0.1:3088/favorites [201 Created, 471 B, 7 ms]
+  Pass  HTTP 201
+  Pass  COMMON201
+
+Root 14 즐겨찾기 해제
+
+  DELETE http://127.0.0.1:3088/favorites/550 [200 OK, 400 B, 3 ms]
+  Pass  HTTP 200
+  Pass  COMMON200
+  Pass  해제 결과 null
+
+Root 15 해제 후 즐겨찾기 여부
+
+  GET http://127.0.0.1:3088/favorites/550 [200 OK, 424 B, 3 ms]
+  Pass  HTTP 200
+  Pass  COMMON200
+  Pass  isFavorite false
+
+Root 16 해제 후에도 다른 회원 기록 유지
+
+  GET http://127.0.0.1:3088/favorites/550 [200 OK, 423 B, 2 ms]
+  Pass  HTTP 200
+  Pass  COMMON200
+  Pass  회원 B 기록 유지
+
+Root 17 이미 해제된 즐겨찾기
+
+  DELETE http://127.0.0.1:3088/favorites/550 [404 Not Found, 428 B, 2 ms]
+  Pass  HTTP 404
+  Pass  FAVORITE404_1
+
+Root 18 경로 영화 ID 검증
+
+  GET http://127.0.0.1:3088/favorites/0 [400 Bad Request, 412 B, 1 ms]
+  Pass  HTTP 400
+  Pass  COMMON400
+
+Root 19 토큰 없이 영화 기록 저장
+
+  POST http://127.0.0.1:3088/movie-records [401 Unauthorized, 416 B, 1 ms]
+  Pass  HTTP 401
+  Pass  AUTH401_2
+
+Root 20 영화 기록 두 데이터 저장
+
+  POST http://127.0.0.1:3088/movie-records [201 Created, 662 B, 11 ms]
+  Pass  HTTP 201
+  Pass  COMMON201
+  Pass  평점과 즐겨찾기가 모두 반환됨
+
+Root 21 영화 기록 중복 평점
+
+  POST http://127.0.0.1:3088/movie-records [409 Conflict, 425 B, 5 ms]
+  Pass  HTTP 409
+  Pass  RATING409_1
+
+Root 22 영화 기록 평점만 저장
+
+  POST http://127.0.0.1:3088/movie-records [201 Created, 597 B, 8 ms]
+  Pass  HTTP 201
+  Pass  COMMON201
+  Pass  평점만 반환됨
+
+Root 23 즐겨찾기 실패 시 영화 기록 롤백
+
+  POST http://127.0.0.1:3088/movie-records [409 Conflict, 426 B, 8 ms]
+  Pass  HTTP 409
+  Pass  FAVORITE409_1
+
+Root 24 롤백 뒤 평점 목록 확인
+
+  GET http://127.0.0.1:3088/members/1/ratings [200 OK, 638 B, 4 ms]
+  Pass  HTTP 200
+  Pass  155 롤백, 238과 680만 존재
+
+Root 25 영화 기록 뒤 즐겨찾기 목록 확인
+
+  GET http://127.0.0.1:3088/favorites [200 OK, 545 B, 5 ms]
+  Pass  HTTP 200
+  Pass  COMMON200
+  Pass  중복 추가 없이 238과 155만 존재
+
+----------------------------------------------------------------------
+|                         |            executed |             failed |
+--------------------------+---------------------+---------------------
+|              iterations |                   1 |                  0 |
+--------------------------+---------------------+---------------------
+|                requests |                  29 |                  0 |
+--------------------------+---------------------+---------------------
+|            test-scripts |                  29 |                  0 |
+--------------------------+---------------------+---------------------
+|      prerequest-scripts |                   1 |                  0 |
+--------------------------+---------------------+---------------------
+|              assertions |                  71 |                  0 |
+----------------------------------------------------------------------
+| total run duration: 867 ms                                         |
+----------------------------------------------------------------------
+| total data received: 4.74 KB (approx)                              |
+----------------------------------------------------------------------
+| average response time: 18 ms [min: 1 ms, max: 134 ms, s.d.: 34 ms] |
+----------------------------------------------------------------------

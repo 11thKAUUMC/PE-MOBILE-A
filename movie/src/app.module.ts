@@ -11,6 +11,11 @@ import { MemberService } from './service/member.service';
 import { Rating } from './entity/rating.entity';
 import { RatingController } from './controller/rating.controller';
 import { RatingService } from './service/rating.service';
+import { Favorite } from './entity/favorite.entity';
+import { FavoriteController } from './controller/favorite.controller';
+import { FavoriteService } from './service/favorite.service';
+import { MovieRecordController } from './controller/movie-record.controller';
+import { MovieRecordService } from './service/movie-record.service';
 
 @Module({
   imports: [
@@ -47,9 +52,22 @@ import { RatingService } from './service/rating.service';
       autoLoadEntities: true,
       synchronize: false,
     }),
-    TypeOrmModule.forFeature([Member, Rating]),
+    TypeOrmModule.forFeature([Member, Rating, Favorite]),
   ],
-  controllers: [MemberController, RatingController, AuthController],
-  providers: [MemberService, RatingService, AuthService, AuthGuard],
+  controllers: [
+    MemberController,
+    RatingController,
+    AuthController,
+    FavoriteController,
+    MovieRecordController,
+  ],
+  providers: [
+    MemberService,
+    RatingService,
+    AuthService,
+    AuthGuard,
+    FavoriteService,
+    MovieRecordService,
+  ],
 })
 export class AppModule {}
