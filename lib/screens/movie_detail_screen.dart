@@ -153,45 +153,6 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
               child: Row(
                 children: [
                   Expanded(
-                    child: OutlinedButton.icon(
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        side: const BorderSide(color: AppColors.violet),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(24),
-                        ),
-                      ),
-                      onPressed: () {
-                        setState(() {
-                          isFavorite = !isFavorite;
-                        });
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              isFavorite ? '즐겨찾기에 추가되었습니다.' : '즐겨찾기에서 삭제되었습니다.',
-                            ),
-                            behavior: SnackBarBehavior.floating,
-                          ),
-                        );
-                      },
-                      icon: Icon(
-                        isFavorite
-                            ? Icons.bookmark
-                            : Icons.bookmark_border_rounded,
-                        color: AppColors.violet,
-                        size: 20,
-                      ),
-                      label: Text(
-                        '즐겨찾기',
-                        style: TextStyle(
-                          color: AppColors.violet,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
                     child: ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.violet,
@@ -210,10 +171,12 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
                             onSubmit: (score, comment) async {
                               final viewModel = context
                                   .read<MovieDetailViewModel>();
+
                               await viewModel.createRating(
                                 score: score,
                                 comment: comment,
                               );
+
                               if (viewModel.submitStatus !=
                                   SubmitStatus.success) {
                                 throw StateError(
@@ -227,17 +190,19 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
                         if (!context.mounted || saved != true) return;
 
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              '평점이 등록했습니다. 마이페이지의 "내가 등록한 평점"에서 확인할 수 있습니다.',
-                            ),
-                          ),
+                          const SnackBar(content: Text('평점을 등록했어요.')),
                         );
                       },
                       icon: const Icon(Icons.rate_review_outlined, size: 20),
-                      label: const Text(
-                        '평점 남기기',
-                        style: TextStyle(fontWeight: FontWeight.bold),
+                      label: Consumer<MovieDetailViewModel>(
+                        builder: (context, viewModel, child) {
+                          final rating = viewModel.createdRating;
+
+                          return Text(
+                            rating == null ? '평점 남기기' : '내 평점 ${rating.score}점',
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          );
+                        },
                       ),
                     ),
                   ),

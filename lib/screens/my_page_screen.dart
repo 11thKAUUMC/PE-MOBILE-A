@@ -1,17 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:movielog/theme/app_colors.dart';
 import 'package:movielog/theme/app_text_styles.dart';
-import 'package:movielog/widgets/common_app_bar.dart';
+import 'package:movielog/view_models/auth_view_model.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
 class MyPageScreen extends StatelessWidget {
   const MyPageScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final auth = context.watch<AuthViewModel>();
+    final member = auth.member;
+
     return Scaffold(
       backgroundColor: AppColors.white,
-      appBar: const CommonAppBar(title: '내 프로필'),
+      appBar: AppBar(
+        title: const Text('내 프로필'),
+        actions: [
+          TextButton(
+            onPressed: () => context.read<AuthViewModel>().logout(),
+            child: const Text('로그아웃'),
+          ),
+        ],
+      ),
 
       body: SingleChildScrollView(
         child: Padding(
@@ -40,7 +52,20 @@ class MyPageScreen extends StatelessWidget {
 
                     const SizedBox(height: 8),
 
-                    const Text('무비러버', style: AppTextStyles.titleMedium),
+                    Text(
+                      member?.nickname ?? '사용자',
+                      style: AppTextStyles.titleMedium,
+                    ),
+                    Text(member?.email ?? ''),
+
+                    if (auth.memberStatus == MemberLoadStatus.loading)
+                      const Center(child: CircularProgressIndicator()),
+
+                    if (auth.memberStatus == MemberLoadStatus.failure)
+                      TextButton(
+                        onPressed: auth.loadMember,
+                        child: const Text('내 정보 다시 불러오기'),
+                      ),
 
                     const SizedBox(height: 8),
 
@@ -58,7 +83,9 @@ class MyPageScreen extends StatelessWidget {
 
               Center(
                 child: TextButton(
-                  onPressed: () {},
+                  onPressed: member == null
+                      ? null
+                      : () => context.push('/my/profile/edit'),
 
                   style: TextButton.styleFrom(
                     fixedSize: const Size(127, 42),
