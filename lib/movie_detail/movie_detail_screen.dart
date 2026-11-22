@@ -48,8 +48,8 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
 
   Future<void> _openRatingDialog() async {
     final viewModel = context.read<MovieDetailViewModel>();
-    if (viewModel.memberId == null) {
-      _showSnackBar('먼저 회원가입을 완료해 주세요.');
+    if (!viewModel.canRate) {
+      _showSnackBar('먼저 로그인해 주세요.');
       return;
     }
 
@@ -80,7 +80,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
   Widget build(BuildContext context) {
     final viewModel = context.watch<MovieDetailViewModel>();
     final movie = viewModel.movie;
-    final canRate = viewModel.memberId != null;
+    final canRate = viewModel.canRate;
 
     return Scaffold(
       appBar: CommonAppBar(
@@ -99,7 +99,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
         onFavoritePressed: _toggleFavorite,
         onRatingPressed: canRate
             ? _openRatingDialog
-            : () => _showSnackBar('먼저 회원가입을 완료해 주세요.'),
+            : () => _showSnackBar('먼저 로그인해 주세요.'),
       ),
     );
   }

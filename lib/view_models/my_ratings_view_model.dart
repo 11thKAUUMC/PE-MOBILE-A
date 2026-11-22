@@ -1,19 +1,31 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 
+import '../core/network/api_error.dart';
+import '../data/models/rating_dto.dart';
 import '../data/models/rating_with_movie.dart';
 import '../data/models/tmdb_movie_dto.dart';
 import '../data/services/rating_api_service.dart';
 import '../data/services/tmdb_movie_service.dart';
+import 'auth_view_model.dart';
+import 'session_ratings_store.dart';
 
 enum MyRatingsLoadStatus { idle, loading, success, empty, error }
 
 class MyRatingsViewModel extends ChangeNotifier {
-  MyRatingsViewModel(this._service, this._movieService, this.memberId);
+  MyRatingsViewModel(
+    this._service,
+    this._movieService,
+    this._store,
+    this._auth,
+  ) {
+    _store.addListener(_onStoreChanged);
+  }
 
   final RatingApiService _service;
   final TmdbMovieService _movieService;
-  final int memberId;
+  final SessionRatingsStore _store;
+  final AuthViewModel _auth;
   final Map<int, TmdbMovieDto?> _movieCache = {};
   int _requestVersion = 0;
   bool _disposed = false;
@@ -27,13 +39,20 @@ class MyRatingsViewModel extends ChangeNotifier {
   final Set<int> selectedRatingIds = {};
   bool isDeletingSelected = false;
 
+  void _onStoreChanged() {
+    if (!_disposed) {
+      load();
+    }
+  }
+
   Future<void> load() async {
     final version = ++_requestVersion;
     status = MyRatingsLoadStatus.loading;
     message = null;
     notifyListeners();
     try {
-      final rawRatings = await _service.fetchMyRatings(memberId);
+      // v7 토큰 기반 내 평점 전체 GET이 없으므로 세션 로컬 목록만 표시합니다.
+      final rawRatings = List<RatingDto>.from(_store.ratings);
       if (_disposed || version != _requestVersion) return;
       final entries = <RatingWithMovie>[];
       var missingMovies = 0;
@@ -45,7 +64,7 @@ class MyRatingsViewModel extends ChangeNotifier {
               rating.movieId,
             );
           } on DioException {
-            // 일시적 네트워크 실패는 캐시하지 않습니다. 다음 로딩에서 재시도합니다.
+            // 일시적 네트워크 실패는 캐시하지 않습니다.
           }
         }
         final movie = _movieCache[rating.movieId];
@@ -60,10 +79,10 @@ class MyRatingsViewModel extends ChangeNotifier {
       if (missingMovies > 0) {
         message = '일부 영화 정보를 가져오지 못해 제목·포스터를 대신 표시합니다.';
       }
-    } on DioException catch (error) {
+    } catch (_) {
       if (_disposed || version != _requestVersion) return;
       status = MyRatingsLoadStatus.error;
-      message = writeMyRatingsErrorMessage(error);
+      message = '평점 목록을 불러오지 못했습니다.';
     }
     if (!_disposed && version == _requestVersion) notifyListeners();
   }
@@ -91,12 +110,7 @@ class MyRatingsViewModel extends ChangeNotifier {
 
   Future<void> _refreshAfterWrite() async {
     await load();
-    if (status == MyRatingsLoadStatus.error) {
-      refreshWarning = '저장은 완료됐지만 목록을 불러오지 못했습니다. 조회만 다시 시도해 주세요.';
-      notifyListeners();
-    } else {
-      refreshWarning = null;
-    }
+    refreshWarning = null;
   }
 
   Future<void> updateRating({
@@ -104,29 +118,42 @@ class MyRatingsViewModel extends ChangeNotifier {
     required int score,
     String? comment,
   }) async {
+    final version = _auth.sessionVersion;
     try {
-      await _service.updateRating(
-        memberId: memberId,
+      final updated = await _service.updateRating(
         ratingId: ratingId,
         score: score,
         comment: comment,
       );
+      if (_disposed || version != _auth.sessionVersion) return;
+      _store.upsert(updated);
     } on DioException catch (error) {
+      if (_disposed || version != _auth.sessionVersion) return;
+      if (isSessionAuthError(apiErrorCode(error))) {
+        await _auth.expireSession();
+        return;
+      }
       message = writeErrorMessage(error);
       notifyListeners();
-      if (shouldRefreshAfterRatingError(error)) await load();
       rethrow;
     }
     await _refreshAfterWrite();
   }
 
   Future<void> deleteRating(int ratingId) async {
+    final version = _auth.sessionVersion;
     try {
-      await _service.deleteRating(memberId: memberId, ratingId: ratingId);
+      await _service.deleteRating(ratingId);
+      if (_disposed || version != _auth.sessionVersion) return;
+      _store.remove(ratingId);
     } on DioException catch (error) {
+      if (_disposed || version != _auth.sessionVersion) return;
+      if (isSessionAuthError(apiErrorCode(error))) {
+        await _auth.expireSession();
+        return;
+      }
       message = writeErrorMessage(error);
       notifyListeners();
-      if (shouldRefreshAfterRatingError(error)) await load();
       rethrow;
     }
     await _refreshAfterWrite();
@@ -137,12 +164,20 @@ class MyRatingsViewModel extends ChangeNotifier {
     isDeletingSelected = true;
     notifyListeners();
     var failed = 0;
+    final version = _auth.sessionVersion;
     try {
       for (final ratingId in selectedRatingIds.toList()) {
+        if (version != _auth.sessionVersion) return;
         try {
-          await _service.deleteRating(memberId: memberId, ratingId: ratingId);
+          await _service.deleteRating(ratingId);
+          if (version != _auth.sessionVersion) return;
+          _store.remove(ratingId);
           selectedRatingIds.remove(ratingId);
-        } on DioException {
+        } on DioException catch (error) {
+          if (isSessionAuthError(apiErrorCode(error))) {
+            await _auth.expireSession();
+            return;
+          }
           failed++;
         }
       }
@@ -164,6 +199,7 @@ class MyRatingsViewModel extends ChangeNotifier {
   void dispose() {
     _disposed = true;
     _requestVersion++;
+    _store.removeListener(_onStoreChanged);
     super.dispose();
   }
 }
