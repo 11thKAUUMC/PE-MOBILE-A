@@ -1,0 +1,16 @@
+export AWS_REGION=ap-southeast-2
+export AWS_DEFAULT_REGION=ap-southeast-2
+export ACCOUNT=997065851380
+export VPC_ID=vpc-0afbe8efc975d5d15
+export ECR=997065851380.dkr.ecr.ap-southeast-2.amazonaws.com/umc-app
+export APP_SG=sg-0af6c19e9e85c633e
+export RDS_SG=sg-0e98d21f8aaed696d
+export IMAGE_TAG=997065851380.dkr.ecr.ap-southeast-2.amazonaws.com/umc-app:v1.0.0-26-03-22-1
+export DB_HOST=umc-movie-db.c7q6igm8qwvi.ap-southeast-2.rds.amazonaws.com
+export INSTANCE_ID=i-046ca744ace3347cf
+export PUBLIC_IP=3.26.23.137
+export AMI=ami-0f9d69ac19d6dd660
+export ALB_SG=sg-019d197c214efbdd7
+export TG=arn:aws:elasticloadbalancing:ap-southeast-2:997065851380:targetgroup/umc-app-tg/115d99422f7fbd17
+export ALB_ARN=arn:aws:elasticloadbalancing:ap-southeast-2:997065851380:loadbalancer/app/umc-alb/17472258dee3a7f6
+export ALB_DNS=umc-alb-862076947.ap-southeast-2.elb.amazonaws.com
