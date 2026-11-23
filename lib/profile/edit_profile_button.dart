@@ -4,7 +4,14 @@ import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
 
 class EditProfileButton extends StatelessWidget {
-  const EditProfileButton({super.key});
+  const EditProfileButton({
+    super.key,
+    this.onPressed,
+    this.enabled = true,
+  });
+
+  final VoidCallback? onPressed;
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
@@ -12,7 +19,7 @@ class EditProfileButton extends StatelessWidget {
       margin: const EdgeInsets.symmetric(vertical: 4),
       child: Center(
         child: TextButton(
-          onPressed: () {},
+          onPressed: enabled ? onPressed : null,
           style: TextButton.styleFrom(
             foregroundColor: AppColors.violet,
             backgroundColor: AppColors.warmWhite,

@@ -9,7 +9,7 @@ import 'package:movielog/data/models/sign_up_models.dart';
 import 'package:movielog/data/services/sign_up_service.dart';
 import 'package:movielog/sign_up/sign_up_screen.dart';
 import 'package:movielog/theme/app_theme.dart';
-import 'package:movielog/view_models/learning_member_session.dart';
+
 
 class _FakeSignUpService extends SignUpService {
   _FakeSignUpService() : super(Dio());
@@ -40,7 +40,6 @@ class _FakeSignUpService extends SignUpService {
 Widget _app({EdgeInsets viewInsets = EdgeInsets.zero}) {
   return MultiProvider(
     providers: [
-      ChangeNotifierProvider(create: (_) => LearningMemberSession()),
       Provider<SignUpService>.value(value: _FakeSignUpService()),
     ],
     child: MaterialApp(
