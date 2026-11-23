@@ -34,12 +34,16 @@ public class WebConfig implements WebMvcConfigurer {
                 .addPathPatterns("/**")
                 // 로그인 없이도 써야 하는 경로만 예외로 열어줍니다
                 .excludePathPatterns(
+                        "/health",               // ALB health check
                         "/auth/**",              // 로그인
                         "/members",              // 회원가입 (POST /members)
                         "/members/nickname/**",  // 닉네임 중복 체크
                         "/members/email/**",     // 이메일 중복 체크
                         "/members/*/ratings",    // 유저별 평점 조회 (누구나 볼 수 있는 목록)
-                        "/error"                 // 스프링이 내부적으로 쓰는 경로
+                        "/error",                // 스프링이 내부적으로 쓰는 경로
+                        "/swagger-ui/**",        // Swagger UI
+                        "/swagger-ui.html",
+                        "/v3/api-docs/**"        // OpenAPI 스펙
                 );
     }
 
