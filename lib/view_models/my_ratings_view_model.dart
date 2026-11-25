@@ -106,7 +106,6 @@ class MyRatingsViewModel extends ChangeNotifier {
   }) async {
     try {
       await _service.updateRating(
-        memberId: memberId,
         ratingId: ratingId,
         score: score,
         comment: comment,
@@ -127,7 +126,7 @@ class MyRatingsViewModel extends ChangeNotifier {
 
   Future<void> deleteRating(int ratingId) async {
     try {
-      await _service.deleteRating(memberId: memberId, ratingId: ratingId);
+      await _service.deleteRating(ratingId);
     } on DioException catch (error) {
       message = writeErrorMessage(error);
       notifyListeners();
